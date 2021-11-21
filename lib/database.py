@@ -96,6 +96,7 @@ class Timer:
             channel bigint,
             message bigint,
             PRIMARY KEY (id, author_id)
+        );
         '''
         cur = conn.cursor()
         cur.execute(command)
