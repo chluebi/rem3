@@ -68,7 +68,7 @@ Here is a list of all available timezones: {1}'''.format(timezone, config['timez
 
     @commands.command(aliases=['when'], description='Gives the absolute date and relative distance to a timestamp')
     async def when_timestamp(self, ctx, timestamp):
-        ''''when_timestamp [relative or absolute timestamp]'''
+        '''when_timestamp [relative or absolute timestamp]'''
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
