@@ -26,10 +26,9 @@ class TimerManager(commands.Cog):
             user.create()
 
         if len(timezone) == 0:
-            m = '''
-            Your current timezone is ``{0}``
-            Run ``{1} timezone [timezone|utc offset]`` to set it to a different value. \n.
-            Here is a list of all available timezones: {2} \n
+            m = '''Your current timezone is ``{0}``
+Run ``{1} timezone [timezone|utc offset]`` to set it to a different value.
+Here is a list of all available timezones: {2}
             '''.format(user.timezone, config['prefix'], config['timezone_list'])
             await ctx.send(m)
             return
@@ -59,8 +58,8 @@ class TimerManager(commands.Cog):
             await ctx.send(m)
             return
 
-        m = f'''The timezone ``{0}`` can\'t be found. 
-        Here is a list of all available timezones: {1}'''.format(timezone, config['timezone_list'])
+        m = '''The timezone ``{0}`` can\'t be found. 
+Here is a list of all available timezones: {1}'''.format(timezone, config['timezone_list'])
         await ctx.send(m)
         return
 
@@ -158,9 +157,9 @@ class TimerManager(commands.Cog):
         for t in timers:
             visual_timers.append(
                 f'''[{t.id}] 
-                ```{t.label}```
-                Set at *{time.ctime(t.timestamp_created)}* by {str(self.bot.get(t.author_id))} with message {get_message_link(t.guild, t.channel, t.message, t.receiver_id)}
-                Will trigger at *{time.ctime(t.timestamp_triggered)}*
+```{t.label}```
+Set at *{time.ctime(t.timestamp_created)}* by {str(self.bot.get(t.author_id))} with message {get_message_link(t.guild, t.channel, t.message, t.receiver_id)}
+Will trigger at *{time.ctime(t.timestamp_triggered)}*
                 '''
             )
 
@@ -201,9 +200,9 @@ class TimerManager(commands.Cog):
         triggered_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()
         error_margin = str(int((time.time() - timer.timestamp_triggered)*1000))
         m = f'''⏰ Timer: ``{timer.label}``
-        This timer was set on ``{created_time_string}``.
-        This timer should've triggered on ``{triggered_time_string}``. (Error Margin: {error_margin} ms)
-        Here is the message where it has been set: {created_message_link}'''
+This timer was set on ``{created_time_string}``.
+This timer should've triggered on ``{triggered_time_string}``. (Error Margin: {error_margin} ms)
+Here is the message where it has been set: {created_message_link}'''
 
         timer.delete()
         await receiver.send(m)
