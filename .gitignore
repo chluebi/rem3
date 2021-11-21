@@ -1,0 +1,8 @@
+
+bot/__pycache__/
+
+configs/database_config.json
+
+configs/discord_config.json
+
+lib/__pycache__/
