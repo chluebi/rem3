@@ -16,6 +16,7 @@ class TimerManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+        self.trigger_timers.start()
 
     @commands.command(aliases=['timezone', 'tz'])
     async def set_timezone(self, ctx, *timezone):
@@ -154,21 +155,26 @@ Here is a list of all available timezones: {1}'''.format(timezone, config['timez
         timers = user.get_timers()
         visual_timers = []
 
+        if len(timers) == 0:
+            m = 'You have not set any timers yet.'
+            await ctx.send(m)
+            return
+
         for t in timers:
             visual_timers.append(
-                f'''[{t.id}] 
+                f'''[ID: {t.id}] 
 ```{t.label}```
-Set at *{time.ctime(t.timestamp_created)}* by {str(self.bot.get(t.author_id))} with message {get_message_link(t.guild, t.channel, t.message, t.receiver_id)}
-Will trigger at *{time.ctime(t.timestamp_triggered)}*
+Set at ``{time.ctime(t.timestamp_created)}`` with message {get_message_link(t.guild_id, t.channel_id, t.message_id, t.receiver_id)}
+Will trigger at ``{time.ctime(t.timestamp_triggered)}``
                 '''
             )
 
-        messages = []
+        messages = ['']
         for t in visual_timers:
-            if len(messages[-1]) + len(t):
+            if len(messages[-1]) + len(t) > 1000:
                 messages.append(t)
             else:
-                messages[-1] += '\n' + t
+                messages[-1] += t + '\n\n'
 
         for m in messages:
             await ctx.send(m)
@@ -193,8 +199,8 @@ Will trigger at *{time.ctime(t.timestamp_triggered)}*
             timer.delete()
             return True, id
 
-        receiver = self.bot.get(timer.receiver_id)
-        created_message_link = get_message_link(timer.guild, timer.channel, timer.message, timer.receiver_id)
+        receiver = self.bot.get_user(timer.receiver_id)
+        created_message_link = get_message_link(timer.guild_id, timer.channel_id, timer.message_id, timer.receiver_id)
 
         created_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()
         triggered_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()
