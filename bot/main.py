@@ -1,8 +1,11 @@
 from nextcord.ext import commands
+import nextcord
 from lib.common import parse_config
 from bot.commands import TimerManager
 
-bot = commands.Bot(command_prefix='rem ')
+intents = nextcord.Intents.default()
+intents.members = True
+bot = commands.Bot(command_prefix='rem ', intents=intents)
 config = parse_config('discord')
 
 @bot.event
