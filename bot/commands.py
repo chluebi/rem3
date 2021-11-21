@@ -12,14 +12,14 @@ from math import floor
 
 config = parse_config('discord')
 
-class TimerManager:
+class TimerManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command(aliases=['timezone', 'tz'])
     async def set_timezone(self, ctx, *timezone):
-        user = db.get_user(ctx.author.id)
+        user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
             user.create()
@@ -65,7 +65,7 @@ class TimerManager:
 
     @commands.command(aliases=['when'])
     async def when_timestamp(self, ctx, *timestamp):
-        user = db.get_user(ctx.author.id)
+        user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
             user.create()
@@ -98,7 +98,7 @@ class TimerManager:
 
     @commands.command(aliases=['me', 'm'])
     async def remind_me(self, ctx, timestamp, *label):
-        user = db.get_user(ctx.author.id)
+        user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
             user.create()
@@ -142,7 +142,7 @@ class TimerManager:
 
     @commands.command(aliases=['list'])
     async def reminder_list(self, ctx):
-        user = db.get_user(ctx.author.id)
+        user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
             user.create()
@@ -157,7 +157,7 @@ class TimerManager:
             visual_timers.append(
                 f'''[{t.id}] 
                 ```{t.label}```
-                Set at *{time.ctime(t.timestamp_created)}* by {str(self.bot.get_user(t.author_id))} with message {get_message_link(t.guild, t.channel, t.message, t.receiver_id)}
+                Set at *{time.ctime(t.timestamp_created)}* by {str(self.bot.get(t.author_id))} with message {get_message_link(t.guild, t.channel, t.message, t.receiver_id)}
                 Will trigger at *{time.ctime(t.timestamp_triggered)}*
                 '''
             )
@@ -192,7 +192,7 @@ class TimerManager:
             timer.delete()
             return True, id
 
-        receiver = self.bot.get_user(timer.receiver_id)
+        receiver = self.bot.get(timer.receiver_id)
         created_message_link = get_message_link(timer.guild, timer.channel, timer.message, timer.receiver_id)
 
         created_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()

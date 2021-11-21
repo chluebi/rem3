@@ -56,7 +56,7 @@ class User:
     def get(id):
         cur = conn.cursor()
         command = '''SELECT * FROM users WHERE id = %s'''
-        cur.execute(command, (id))
+        cur.execute(command, (id,))
         row = cur.fetchone()
         cur.close()
         return User.create_from_row(row)
