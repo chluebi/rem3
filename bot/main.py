@@ -15,5 +15,5 @@ async def on_ready():
     print('------------------')
 
 
-bot.add_cog(TimerManager(bot))
+bot.add_cog(TimerManager(bot), description='Manages the reminder/timer setting and triggering of said timers')
 bot.run(config['token'])

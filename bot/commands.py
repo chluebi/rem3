@@ -1,3 +1,4 @@
+from nextcord.gateway import DiscordClientWebSocketResponse
 import lib.database as db
 from lib.common import parse_config, get_message_link
 from bot.util import is_dm
@@ -18,8 +19,9 @@ class TimerManager(commands.Cog):
         self.bot = bot
         self.trigger_timers.start()
 
-    @commands.command(aliases=['timezone', 'tz'])
+    @commands.command(aliases=['timezone', 'tz'], description="Sets the user's timezone")
     async def set_timezone(self, ctx, *timezone):
+        '''set_timezone [timezone|utc offset]'''
         timezone = ' '.join(timezone)
         user = db.User.get(ctx.author.id)
         if user is None:
@@ -64,8 +66,9 @@ Here is a list of all available timezones: {1}'''.format(timezone, config['timez
         await ctx.send(m)
         return
 
-    @commands.command(aliases=['when'])
+    @commands.command(aliases=['when'], description='Gives the absolute date and relative distance to a timestamp')
     async def when_timestamp(self, ctx, timestamp):
+        ''''when_timestamp [relative or absolute timestamp]'''
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
@@ -97,8 +100,9 @@ Here is a list of all available timezones: {1}'''.format(timezone, config['timez
 
         
 
-    @commands.command(aliases=['me', 'm'])
+    @commands.command(aliases=['me', 'm'], description='Sets a personal reminder for the person calling the command')
     async def remind_me(self, ctx, timestamp, *label):
+        '''remind_me [relative or absolute timestamp] [*message attached to the reminder]'''
         label = ' '.join(label)
         user = db.User.get(ctx.author.id)
         if user is None:
@@ -142,8 +146,12 @@ Here is a list of all available timezones: {1}'''.format(timezone, config['timez
         timer.create()
         await ctx.send(m)
 
-    @commands.command(aliases=['list'])
+    @commands.command(aliases=['list'], description='Gives the entire list of reminders for a user.')
     async def reminder_list(self, ctx):
+        '''reminder_list'''
+        if not is_dm(ctx.channel):
+            ctx.send('This command only works in DMs to prevent people leaking their personal reminders into public servers.')
+            return
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
