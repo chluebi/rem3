@@ -64,8 +64,34 @@ class TimerManager:
         return
 
     @commands.command(aliases=['when'])
-    async def when_timestamp(self, ctx, timestamp):
-        pass
+    async def when_timestamp(self, ctx, *timestamp):
+        user = db.get_user(ctx.author.id)
+        if user is None:
+            user = db.User(ctx.author.id, 'Etc/GMT0')
+            user.create()
+
+        try:
+            distance = th.timedelta_string_into_seconds(timestamp)
+            seconds_since_epoch = time.time() + distance
+        except:
+            try:
+                seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, user.timezone)
+                seconds_since_epoch = th.localize_seconds(seconds_since_epoch, user.timezone)
+                distance = seconds_since_epoch - time.time()
+            except Exception as e:
+                await ctx.send(f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``''')
+                return
+
+        datetime_object = th.seconds_to_datetime(seconds_since_epoch)
+        datetime_object = th.localize_datetime(datetime_object, user.timezone)
+        timedelta_string = th.timedelta_seconds_to_string(distance)
+        datetime_string = datetime_object.ctime()
+        m = '''This timestamp is in ``{0}`` which is the ``{1}``'''\
+        .format(timedelta_string, datetime_string)
+
+        await ctx.send(m)
+
+        
 
     @commands.command(aliases=['me', 'm'])
     async def remind_me(self, ctx, timestamp):
@@ -74,40 +100,6 @@ class TimerManager:
     @commands.command(aliases=['list'])
     async def reminder_list():
         pass
-
-
-
-async def when(client, message, msg, db_connection):
-    user = db.get_user(db_connection, message.author.id)
-    if user is None:
-        db.create_user(db_connection, message.author.id, 'Etc/GMT0')
-        user = db.get_user(db_connection, message.author.id)
-
-    if len(msg) < 2:
-        await message.channel.send('Please specify a time')
-        return
-
-    try:
-        distance = th.timedelta_string_into_seconds(msg[1])
-        seconds_since_epoch = time.time() + distance
-    except:
-        try:
-            seconds_since_epoch = th.timepoint_string_to_seconds(msg[1], user[1])
-            seconds_since_epoch = th.localize_seconds(seconds_since_epoch, user[1])
-            distance = seconds_since_epoch - time.time()
-        except Exception as e:
-            await message.channel.send('''Error occured: ```{}``` 
-                Be sure to use this format: ``{} when``'''.format(e, config['prefix']))
-            return
-
-    datetime_object = th.seconds_to_datetime(seconds_since_epoch)
-    datetime_object = th.localize_datetime(datetime_object, user[1])
-    timedelta_string = th.timedelta_seconds_to_string(distance)
-    datetime_string = datetime_object.ctime()
-    m = '''This timestamp is in ``{0}`` which is the ``{1}``'''\
-    .format(timedelta_string, datetime_string)
-
-    await message.channel.send(m)
 
 
 async def timer_list(client, message, msg, db_connection):
