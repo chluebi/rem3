@@ -1,7 +1,7 @@
 import json
 from lib.common import parse_config
 
-from discord import DMChannel, TextChannel
+from nextcord import DMChannel, TextChannel
 
 config = parse_config('discord')
 
