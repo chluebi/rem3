@@ -1,27 +1,16 @@
-import nextcord
+from nextcord.ext import commands
 from lib.common import parse_config
-from lib import database
-from bot.util import parse_message
-from bot.commands import execute_command
-from bot.trigger_timer import main_loop
+from bot.commands import TimerManager
 
-client = nextcord.Client()
+bot = commands.Bot(command_prefix='rem ')
 config = parse_config('discord')
-db_connection = database.connect()
 
-
-@client.event
+@bot.event
 async def on_ready():
     print('------------------')
-    print(f'bot ready {client.user.name}')
+    print(f'bot ready {bot.user.name}')
     print('------------------')
-    await main_loop(client, db_connection)
 
 
-@client.event
-async def on_message(message):
-    p_message = parse_message(message.content)
-    if p_message is not None:
-        await execute_command(client, message, p_message, db_connection)
-
-client.run(config['token'])
+bot.add_cog(TimerManager(bot))
+bot.run(config['token'])
