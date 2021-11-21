@@ -6,7 +6,7 @@ import lib.time_handle as th
 import time
 import pytz
 import asyncio
-from nextcord.ext import commands
+from nextcord.ext import commands, tasks
 from math import floor
 
 
@@ -172,3 +172,37 @@ class TimerManager:
         for m in messages:
             await ctx.send(m)
             await asyncio.sleep(3)
+
+    @tasks.loop(seconds=config['interval'])
+    async def trigger_timers(self):
+        old_time = time.time()
+        timers = db.Timer.get_all_later_then(old_time + config['interval'])
+
+        for timer in timers:
+            delay = timer.timestamp_triggered - time.time()
+            self.bot.loop.create_task(self.trigger_timer(delay, timer))
+            timers.remove(timer)
+
+    async def trigger_timer(self, delay, timer):
+        await asyncio.sleep(delay)
+        if timer.timestamp_triggered > time.time():
+            return False, 0
+
+        if timer.timestamp_triggered < time.time() - 2*config['interval']:
+            timer.delete()
+            return True, id
+
+        receiver = self.bot.get_user(timer.receiver_id)
+        created_message_link = get_message_link(timer.guild, timer.channel, timer.message, timer.receiver_id)
+
+        created_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()
+        triggered_time_string = th.seconds_to_datetime(timer.timestamp_created).ctime()
+        error_margin = str(int((time.time() - timer.timestamp_triggered)*1000))
+        m = f'''⏰ Timer: ``{timer.label}``
+        This timer was set on ``{created_time_string}``.
+        This timer should've triggered on ``{triggered_time_string}``. (Error Margin: {error_margin} ms)
+        Here is the message where it has been set: {created_message_link}'''
+
+        timer.delete()
+        await receiver.send(m)
+        return True, id
