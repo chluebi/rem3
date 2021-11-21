@@ -19,6 +19,7 @@ class TimerManager(commands.Cog):
 
     @commands.command(aliases=['timezone', 'tz'])
     async def set_timezone(self, ctx, *timezone):
+        timezone = ' '.join(timezone)
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
@@ -64,7 +65,7 @@ class TimerManager(commands.Cog):
         return
 
     @commands.command(aliases=['when'])
-    async def when_timestamp(self, ctx, *timestamp):
+    async def when_timestamp(self, ctx, timestamp):
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
@@ -98,6 +99,7 @@ class TimerManager(commands.Cog):
 
     @commands.command(aliases=['me', 'm'])
     async def remind_me(self, ctx, timestamp, *label):
+        label = ' '.join(label)
         user = db.User.get(ctx.author.id)
         if user is None:
             user = db.User(ctx.author.id, 'Etc/GMT0')
