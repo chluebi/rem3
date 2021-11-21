@@ -112,16 +112,16 @@ class Timer:
         conn.commit()
         cur.close()
 
-    def __init__(self, id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message):
+    def __init__(self, id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild_id, channel_id, message_id):
         self.id = id
         self.label = label
         self.timestamp_created = timestamp_created
         self.timestamp_triggered = timestamp_triggered
         self.author_id = author_id
         self.receiver_id = receiver_id
-        self.guild = guild
-        self.channel = channel
-        self.message = message
+        self.guild_id = guild_id
+        self.channel_id = channel_id
+        self.message_id = message_id
 
     def create_from_row(row):
         if row is None:
