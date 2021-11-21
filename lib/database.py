@@ -11,29 +11,80 @@ def connect():
                             password=config['password'] if 'password' in config else None)
     return conn
 
+conn = connect()
 
-# This function should only be called when going into a new environment
-def create_tables(conn, delete=True):
-    commands = []
-    if delete:
-        commands += [
-        '''
-        DROP TABLE users CASCADE;
-        ''',
-        '''
-        DROP TABLE timers; 
-        ''']
-        
-    commands += [
-        # we actually store discord users only by id
-        # discord ids are big
-        '''
-        CREATE TABLE users ( 
+class User:
+
+    def create_table():
+        command = '''
+            CREATE TABLE users ( 
             id bigint PRIMARY KEY, 
             timezone VARCHAR(255)
-        );
-        ''',
+        );'''
+
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    def delete_table():
+        command = '''
+        DROP TABLE users CASCADE;
         '''
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    def __init__(self, id, timezone):
+        self.id = id
+        self.timezone = timezone
+
+    def create_from_row(row):
+        if row is None:
+            return None
+        id, timezone = row
+        return User(id, timezone)
+
+    def create(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO users(id, timezone) VALUES (%s, %s);'''
+        cur.execute(command, (self.id, self.timezone))
+        conn.commit()
+        cur.close()
+
+    def get(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM users WHERE id = %s'''
+        cur.execute(command, (id))
+        row = cur.fetchone()
+        cur.close()
+        return User.create_from_row(row)
+
+    # This function changes the user timezone to *any* string it gets.
+    # So validation has to happen BEFOREHAND
+    def change_timezone(self, timezone):
+        self.timezone = timezone
+        cur = conn.cursor()
+        command = '''UPDATE users
+                    SET timezone = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (self.timezone, self.id))
+        conn.commit()
+        cur.close()
+
+    def get_timers(self):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE receiver_id = %s'''
+        cur.execute(command, (self.id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [User.create_from_row(row) for row in rows]
+
+class Timer:
+
+    def create_table():
+        command = '''
         CREATE TABLE timers (
             id SERIAL,
             label text,
@@ -45,100 +96,77 @@ def create_tables(conn, delete=True):
             channel bigint,
             message bigint,
             PRIMARY KEY (id, author_id)
-        );
-        ''']
-
-    cur = conn.cursor()
-
-    for c in commands:
-        cur.execute(c)
-
-    conn.commit()
-    cur.close()
-
-
-def get_user(conn, user_id):
-    cur = conn.cursor()
-    command = '''SELECT * FROM users WHERE id = %s'''
-    cur.execute(command, (user_id,))
-    row = cur.fetchone()
-    cur.close()
-    return row
-
-
-def create_user(conn, user_id, user_timezone):
-    cur = conn.cursor()
-    command = '''INSERT INTO users(id, timezone) VALUES (%s, %s);'''
-    cur.execute(command, (user_id, user_timezone))
-    conn.commit()
-    cur.close()
-
-
-# This function changes the user timezone to *any* string it gets.
-# So validation has to happen BEFOREHAND
-def change_timezone(conn, user_id, timezone):
-    cur = conn.cursor()
-    command = '''UPDATE users
-                SET timezone = %s
-                WHERE id = %s;'''
-    cur.execute(command, (timezone, user_id))
-    conn.commit()
-    cur.close()
-
-
-def get_timers(conn, user_id, all=False):
-    cur = conn.cursor()
-    if all: # debug and bot usage
-        command = '''SELECT * from timers'''
+        '''
+        cur = conn.cursor()
         cur.execute(command)
-    else:
-        command = '''SELECT * FROM timers WHERE receiver_id = %s'''
-        cur.execute(command, (user_id,))
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+        conn.commit()
+        cur.close()
 
+    def delete_table():
+        command = '''
+            DROP TABLE timers;
+        '''
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
 
-def get_timers_threshold(conn, threshold):
-    cur = conn.cursor()
-    command = '''SELECT * FROM timers WHERE timestamp_triggered < %s'''
-    cur.execute(command, (threshold,))
-    rows = cur.fetchall()
-    cur.close()
-    return rows
+    def __init__(self, id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message):
+        self.id = id
+        self.label = label
+        self.timestamp_created = timestamp_created
+        self.timestamp_triggered = timestamp_triggered
+        self.author_id = author_id
+        self.receiver_id = receiver_id
+        self.guild = guild
+        self.channel = channel
+        self.message = message
 
-# created_time and target_time have to be already entered in seconds away from the epoch
-# created_time is entered instead of computed to not have inaccuracies caused by latency
-def create_timer(conn, label, timestamp_created, timestamp_triggered, author_id, receiver_id=0, guild_id=0, channel_id=0, message_id=0):
-    if receiver_id == 0:
-        receiver_id = author_id
-    cur = conn.cursor()
-    command = '''INSERT INTO timers(label,
-    timestamp_created,
-    timestamp_triggered,
-    author_id,
-    receiver_id,
-    guild,
-    channel,
-    message) 
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s);'''
+    def create_from_row(row):
+        if row is None:
+            return None
+        id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message = row
+        if receiver_id == 0:
+            receiver_id = author_id
+        return Timer(id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message)
 
-    cur.execute(command,
-    (label,
-    timestamp_created,
-    timestamp_triggered,
-    author_id,
-    receiver_id,
-    guild_id,
-    channel_id,
-    message_id))
+    def get_all_later_then(timestamp):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE timestamp_triggered < %s'''
+        cur.execute(command, (timestamp,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
 
-    conn.commit()
-    cur.close()
+    # created_time and target_time have to be already entered in seconds away from the epoch
+    # created_time is entered instead of computed to not have inaccuracies caused by latency
+    def create(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO timers(label,
+        timestamp_created,
+        timestamp_triggered,
+        author_id,
+        receiver_id,
+        guild,
+        channel,
+        message) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);'''
 
+        cur.execute(command,
+        (self.label,
+        self.timestamp_created,
+        self.timestamp_triggered,
+        self.author_id,
+        self.receiver_id,
+        self.guild_id,
+        self.channel_id,
+        self.message_id))
 
-def delete_timer(conn, id):
-    cur = conn.cursor()
-    command = '''DELETE FROM timers WHERE id = %s'''
-    cur.execute(command, (id,))
-    cur.close()
+        conn.commit()
+        cur.close()
+
+    def delete(self):
+        cur = conn.cursor()
+        command = '''DELETE FROM timers WHERE id = %s'''
+        cur.execute(command, (self.id,))
+        cur.close()
