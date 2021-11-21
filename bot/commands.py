@@ -6,83 +6,75 @@ import lib.time_handle as th
 import time
 import pytz
 import asyncio
+from nextcord.ext import commands
 from math import floor
 
 
 config = parse_config('discord')
 
-commands = []
+class TimerManager:
 
-async def execute_command(client, message, msg, db_connection):
-    command = None
-    for c in commands:
-        if c.name == msg[0] or msg[0] in c.aliases:
-            command = c
-            break
+    def __init__(self):
+        self.bot = bot
 
-    if command is None:
-        await message.channel.send(f'Command ``{msg[0]}`` not found.')
-        return
+    @commands.command(aliases=['timezone', 'tz'])
+    async def set_timezone(self, ctx, *timezone):
+        user = db.get_user(ctx.author.id)
+        if user is None:
+            user = db.User(ctx.author.id, 'Etc/GMT0')
+            user.create()
 
-    await message.add_reaction('✅')
-    await command.function(client, message, msg, db_connection)
-
-
-def register_command(function, name=None, aliases=[]):
-    Command(function, name, aliases)
-
-
-class Command:
-    def __init__(self, function, name, aliases):
-        self.function = function
-        self.name = name
-        self.aliases = aliases
-        commands.append(self)
-
-
-
-async def set_timezone(client, message, msg, db_connection):
-    user = db.get_user(db_connection, message.author.id)
-    if user is None:
-        db.create_user(db_connection, message.author.id, 'Etc/GMT0')
-
-    if len(msg) < 2:
-        m1 = f'Your current timezone is ``{user[1]}``. \n'
-        m2 = 'Run ``{} timezone x`` to set it to a different value. \n'.format(config['prefix'])
-        m3 = 'Here is a list of all available timezones: {} \n'.format(config['timezone_list'])
-        m4 = '''(Where x is either your tz timezone (like ``Europe/London``)
-or your UTC offset (like ``+3``/``-3``)'''
-        await message.channel.send(m1 + m2 + m3 + m4)
-        return
-
-    timezone = msg[1]
-    if timezone == user[1]:
-        m1 = f'Your timezone is already ``{timezone}``. \n'
-        await message.channel.send(m1)
-        return
-
-    if timezone[0] in ['+', '-', '0']:
-        gmt = 'Etc/GMT'
-        if int(timezone) <= 12 and int(timezone) >= -14:
-            if int(timezone) >= 0:
-                timezone = gmt + '+' + str(-int(timezone))
-            else:
-                timezone = gmt + '-' + str(-int(timezone))
-            db.change_timezone(db_connection, message.author.id, timezone)
-            m1 = f'Your timezone has been set to ``{timezone}``. \n'
-            await message.channel.send(m1)
+        if len(timezone) == 0:
+            m = '''
+            Your current timezone is ``{0}``
+            Run ``{1} timezone [timezone|utc offset]`` to set it to a different value. \n.
+            Here is a list of all available timezones: {2} \n
+            '''.format(user.timezone, config['prefix'], config['timezone_list'])
+            await ctx.send(m)
+            return
+        
+        if timezone == user.timezone:
+            m = f'Your timezone is already ``{timezone}``.'
+            await ctx.send(m)
             return
 
-    if timezone in pytz.all_timezones:
-        db.change_timezone(db_connection, message.author.id, timezone)
-        m1 = f'Your timezone has been set to ``{timezone}``. \n'
-        await message.channel.send(m1)
+        if timezone.startswith('+') or timezone.startswith('-') or timezone.startswith('0'):
+            gmt = 'Etc/GMT'
+            if int(timezone) <= 12 and int(timezone) >= -14:
+                if int(timezone) >= 0:
+                    timezone = gmt + '+' + str(-int(timezone))
+                else:
+                    timezone = gmt + '-' + str(-int(timezone))
+                user.change_timezone(timezone)
+                m = f'Your timezone has been set to ``{timezone}``. \n'
+                await ctx.send(m)
+                return
+            else:
+                await ctx.send('``{timezone}`` is not a valid utc offset')
+
+        if timezone in pytz.all_timezones:
+            user.change_timezone(timezone)
+            m = f'Your timezone has been set to ``{timezone}``. \n'
+            await ctx.send(m)
+            return
+
+        m = f'''The timezone ``{0}`` can\'t be found. 
+        Here is a list of all available timezones: {1}'''.format(timezone, config['timezone_list'])
+        await ctx.send(m)
         return
-    
-    m1 = f'The timezone ``{msg[1]}`` can\'t be found. \n'
-    m2 = 'Here is a list of all available timezones: {} \n'.format(config['timezone_list'])
-    await message.channel.send(m1 + m2)
-    return
+
+    @commands.command(aliases=['when'])
+    async def when_timestamp(self, ctx, timestamp):
+        pass
+
+    @commands.command(aliases=['me', 'm'])
+    async def remind_me(self, ctx, timestamp):
+        pass
+
+    @commands.command(aliases=['list'])
+    async def reminder_list():
+        pass
+
 
 
 async def when(client, message, msg, db_connection):
