@@ -79,7 +79,7 @@ class User:
         cur.execute(command, (self.id,))
         rows = cur.fetchall()
         cur.close()
-        return [User.create_from_row(row) for row in rows]
+        return [Timer.create_from_row(row) for row in rows]
 
 class Timer:
 
