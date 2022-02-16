@@ -8,3 +8,5 @@ configs/discord_config.json
 lib/__pycache__/
 
 *.lock
+
+*.log

@@ -41,3 +41,10 @@ def parse_message(content):
 
 def is_dm(channel):
 	return isinstance(channel, DMChannel)
+
+
+def get_relative_timestamp(seconds):
+	return f'<t:{seconds}:R>'
+
+def get_absolute_timestamp(seconds):
+	return f'<t:{seconds}:F>'

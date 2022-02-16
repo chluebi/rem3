@@ -1,4 +1,6 @@
+from venv import create
 import psycopg2
+import random
 from lib.common import parse_config
 
 # standard database connection used by both services
@@ -15,6 +17,7 @@ conn = connect()
 
 class User:
 
+    @staticmethod
     def create_table():
         command = '''
             CREATE TABLE users ( 
@@ -27,6 +30,7 @@ class User:
         conn.commit()
         cur.close()
 
+    @staticmethod
     def delete_table():
         command = '''
         DROP TABLE users CASCADE;
@@ -40,19 +44,18 @@ class User:
         self.id = id
         self.timezone = timezone
 
+    @staticmethod
+    def create(id, timezone):
+        return User(id, timezone)
+
+    @staticmethod
     def create_from_row(row):
         if row is None:
             return None
         id, timezone = row
         return User(id, timezone)
 
-    def create(self):
-        cur = conn.cursor()
-        command = '''INSERT INTO users(id, timezone) VALUES (%s, %s);'''
-        cur.execute(command, (self.id, self.timezone))
-        conn.commit()
-        cur.close()
-
+    @staticmethod
     def get(id):
         cur = conn.cursor()
         command = '''SELECT * FROM users WHERE id = %s'''
@@ -61,8 +64,13 @@ class User:
         cur.close()
         return User.create_from_row(row)
 
-    # This function changes the user timezone to *any* string it gets.
-    # So validation has to happen BEFOREHAND
+    def insert(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO users(id, timezone) VALUES (%s, %s);'''
+        cur.execute(command, (self.id, self.timezone))
+        conn.commit()
+        cur.close()
+
     def change_timezone(self, timezone):
         self.timezone = timezone
         cur = conn.cursor()
@@ -81,28 +89,111 @@ class User:
         cur.close()
         return [Timer.create_from_row(row) for row in rows]
 
-class Timer:
+class Allow:
 
+    @staticmethod
     def create_table():
         command = '''
-        CREATE TABLE timers (
-            id SERIAL,
-            label text,
-            timestamp_created double precision,
-            timestamp_triggered double precision,
-            author_id bigint REFERENCES users(id),
-            receiver_id bigint REFERENCES users(id) ON DELETE CASCADE,
-            guild bigint,
-            channel bigint,
-            message bigint,
-            PRIMARY KEY (id, author_id)
-        );
+            CREATE TABLE Allows ( 
+            sender_id bigint,
+            receiver_id bigint,
+            PRIMARY KEY(sender_id, receiver_id)
+        );'''
+
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        command = '''
+        DROP TABLE Allows CASCADE;
         '''
         cur = conn.cursor()
         cur.execute(command)
         conn.commit()
         cur.close()
 
+    def __init__(self, sender_id, receiver_id):
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+
+    @staticmethod
+    def create(sender_id, receiver_id):
+        return Allow(sender_id, receiver_id)
+
+    @staticmethod
+    def create_from_row(row):
+        if row is None:
+            return None
+        sender_id, receiver_id = row
+        return Allow(sender_id, receiver_id)
+
+    def insert(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO Allow(sender_id, receiver_id) VALUES (%s, %s);'''
+        cur.execute(command, (self.sender_id, self.receiver_id))
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def get(sender_id, receiver_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM Allow WHERE sender_id = %s AND receiver_id = %s'''
+        cur.execute(command, (sender_id, receiver_id))
+        row = cur.fetchone()
+        cur.close()
+        return Allow.create_from_row(row)
+
+    @staticmethod
+    def get_by_sender(sender_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM Allow WHERE sender_id = %s'''
+        cur.execute(command, (sender_id, ))
+        rows = cur.fetchall()
+        cur.close()
+        return [Allow.create_from_row(row) for row in rows]
+
+    @staticmethod
+    def get_by_receiver(sender_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM Allow WHERE receiver_id = %s'''
+        cur.execute(command, (receiver_id, ))
+        rows = cur.fetchall()
+        cur.close()
+        return [Allow.create_from_row(row) for row in rows]
+
+
+class Timer:
+
+    @staticmethod
+    def create_table():
+        command = '''
+        CREATE TABLE timers (
+            id bigint UNIQUE,
+            label text,
+            created_timestamp double precision,
+            triggered_timestamp double precision,
+            repeat_seconds double precision,
+            author_id bigint REFERENCES users(id),
+            author_guild_id bigint,
+            author_channel_id bigint,
+            author_message_id bigint,
+            receiver_id bigint,
+            receiver_guild_id bigint,
+            receiver_channel_id bigint,
+            receiver_message_id bigint,
+            PRIMARY KEY (id, author_id)
+        );
+        '''
+        
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    @staticmethod
     def delete_table():
         command = '''
             DROP TABLE timers;
@@ -112,56 +203,143 @@ class Timer:
         conn.commit()
         cur.close()
 
-    def __init__(self, id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild_id, channel_id, message_id):
-        self.id = id
-        self.label = label
-        self.timestamp_created = timestamp_created
-        self.timestamp_triggered = timestamp_triggered
-        self.author_id = author_id
-        self.receiver_id = receiver_id
-        self.guild_id = guild_id
-        self.channel_id = channel_id
-        self.message_id = message_id
+    @staticmethod
+    def get(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE id = %s'''
+        cur.execute(command, (id,))
+        row = cur.fetchone()
+        cur.close()
 
-    def create_from_row(row):
         if row is None:
             return None
-        id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message = row
-        if receiver_id == 0:
-            receiver_id = author_id
-        return Timer(id, label, timestamp_created, timestamp_triggered, author_id, receiver_id, guild, channel, message)
 
+        return Timer.create_from_row(row)
+
+    @staticmethod
+    def get_all_author(author_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE author_id = %s'''
+        cur.execute(command, (author_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
+
+
+    @staticmethod
+    def get_all_user_receiver(receiver_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE receiver_id = %s'''
+        cur.execute(command, (receiver_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
+
+
+    @staticmethod
+    def get_all_guild_receiver(receiver_guild_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE receiver_guild_id = %s'''
+        cur.execute(command, (receiver_guild_id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
+
+    @staticmethod
     def get_all_later_then(timestamp):
         cur = conn.cursor()
-        command = '''SELECT * FROM timers WHERE timestamp_triggered < %s'''
+        command = '''SELECT * FROM timers WHERE triggered_timestamp < %s'''
         cur.execute(command, (timestamp,))
         rows = cur.fetchall()
         cur.close()
         return [Timer.create_from_row(row) for row in rows]
 
+    def __init__(self, id, label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id):
+        self.id = id
+        self.label = label
+        self.created_timestamp = created_timestamp
+        self.triggered_timestamp = triggered_timestamp
+        self.repeat_seconds = repeat_seconds
+        self.author_id = author_id
+        self.author_guild_id = author_guild_id
+        self.author_channel_id = author_channel_id
+        self.author_message_id = author_message_id
+        self.receiver_id = receiver_id
+        self.receiver_guild_id = receiver_guild_id
+        self.receiver_channel_id = receiver_channel_id
+        self.receiver_message_id = receiver_message_id
+
+    @staticmethod
+    def create(label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id):
+        MIN_ID = 10**5
+        MAX_ID = 10**6 - 1
+        id = random.randint(MIN_ID, MAX_ID)
+        while not Timer.get(id) is None:
+            id = random.randint(MIN_ID, MAX_ID)
+
+        return Timer(id, label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id)
+
+    @staticmethod
+    def create_personal_timer(label, created_timestamp, triggered_timestamp, author_id, receiver_id, author_guild_id, author_channel_id, author_message_id, repeat=-1):
+        label = label
+        created_timestamp = created_timestamp
+        triggered_timestamp = triggered_timestamp
+        repeat_seconds = repeat
+        author_id = author_id
+        author_guild_id = author_guild_id
+        author_channel_id = author_channel_id
+        author_message_id = author_message_id
+        receiver_id = receiver_id
+        receiver_guild_id = 0
+        receiver_channel_id = 0
+        receiver_message_id = 0
+        return Timer.create(label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id)
+
+    @staticmethod
+    def create_from_row(row):
+        if row is None:
+            return None
+        id, label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id = row
+        return Timer(id, label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id)
+
+
     # created_time and target_time have to be already entered in seconds away from the epoch
     # created_time is entered instead of computed to not have inaccuracies caused by latency
-    def create(self):
+    def insert(self):
         cur = conn.cursor()
-        command = '''INSERT INTO timers(label,
-        timestamp_created,
-        timestamp_triggered,
+        command = '''INSERT INTO timers(
+        id,
+        label,
+        created_timestamp,
+        triggered_timestamp,
+        repeat_seconds,
         author_id,
+        author_guild_id,
+        author_channel_id,
+        author_message_id,
         receiver_id,
-        guild,
-        channel,
-        message) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);'''
+        receiver_guild_id,
+        receiver_channel_id,
+        receiver_message_id
+        ) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);'''
 
         cur.execute(command,
-        (self.label,
-        self.timestamp_created,
-        self.timestamp_triggered,
+        (
+        self.id,
+        self.label,
+        self.created_timestamp,
+        self.triggered_timestamp,
+        self.repeat_seconds,
         self.author_id,
+        self.author_guild_id,
+        self.author_channel_id,
+        self.author_message_id,
         self.receiver_id,
-        self.guild_id,
-        self.channel_id,
-        self.message_id))
+        self.receiver_guild_id,
+        self.receiver_channel_id,
+        self.receiver_message_id
+        ))
 
         conn.commit()
         cur.close()
@@ -171,3 +349,4 @@ class Timer:
         command = '''DELETE FROM timers WHERE id = %s'''
         cur.execute(command, (self.id,))
         cur.close()
+    

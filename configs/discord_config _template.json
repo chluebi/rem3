@@ -3,5 +3,6 @@
 	"invite":"",
 	"token":"",
 	"interval":10,
+	"min_repeat":3600,
 	"timezone_list":"https://pastebin.com/hfJuc9GP"
 }

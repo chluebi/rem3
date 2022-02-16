@@ -114,6 +114,10 @@ def strptime_list(timestring, timezone):
     except:
         pass
     try:
+        return time.strptime(timestring, '%H:%M %d.%m.%Y')
+    except:
+        pass
+    try:
         c = time.gmtime(delocalize_seconds(time.time(), timezone))
         end = time.strptime(f'{c.tm_year}.{c.tm_mon}.{c.tm_mday} {timestring}', '%Y.%m.%d %H:%M')
         # if the specified time has already passed today,
@@ -171,3 +175,21 @@ def localize_datetime(datetime_object, timezone):
 def delocalize_datetime(datetime_object, timezone):
     timezone = pytz.timezone(timezone)
     return timezone.localize(datetime_object).astimezone(timezone)
+
+
+
+def parse_time_string(timestamp, user):
+    try:
+        distance = timedelta_string_into_seconds(timestamp)
+        seconds_since_epoch = time.time() + distance
+    except:
+        seconds_since_epoch = timepoint_string_to_seconds(timestamp, user.timezone)
+        seconds_since_epoch = localize_seconds(seconds_since_epoch, user.timezone)
+        distance = seconds_since_epoch - time.time()
+
+    datetime_object = seconds_to_datetime(seconds_since_epoch)
+    datetime_object = localize_datetime(datetime_object, user.timezone)
+    timedelta_string = timedelta_seconds_to_string(distance)
+    datetime_string = datetime_object.ctime()
+
+    return seconds_since_epoch
