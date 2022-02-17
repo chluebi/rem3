@@ -16,6 +16,13 @@ async def create_user(ctx):
         await ctx.send(embed=embeds.standard_embed('User created', m, ctx=ctx))
     return True
 
+async def create_guild(ctx):
+    guild = db.Guild.get(ctx.guild.id)
+    if guild is None:
+        guild = db.Guild(ctx.guild.id, False, False)
+        guild.insert()
+    return True
+
 async def is_dm(ctx):
     if not channel_is_dm(ctx.channel):
         m = 'This command is only available in DMs.'

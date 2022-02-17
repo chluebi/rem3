@@ -15,6 +15,65 @@ def connect():
 
 conn = connect()
 
+class Guild:
+
+    @staticmethod
+    def create_table():
+        command = '''
+            CREATE TABLE guilds ( 
+            id bigint PRIMARY KEY, 
+            allow_timers boolean,
+            extract_mentions boolean
+        );'''
+
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    @staticmethod
+    def delete_table():
+        command = '''
+        DROP TABLE guilds CASCADE;
+        '''
+        cur = conn.cursor()
+        cur.execute(command)
+        conn.commit()
+        cur.close()
+
+    def __init__(self, id, allow_timers, extract_mentions):
+        self.id = id
+        self.allow_timers = allow_timers
+        self.extract_mentions = extract_mentions
+
+    @staticmethod
+    def create(id, allow_timers, extract_mentions):
+        return Guild(id, allow_timers, extract_mentions)
+
+    @staticmethod
+    def create_from_row(row):
+        if row is None:
+            return None
+        id, allow_timers, extract_mentions = row
+        return create(id, allow_timers, extract_mentions)
+
+    @staticmethod
+    def get(id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM guilds WHERE id = %s'''
+        cur.execute(command, (id,))
+        row = cur.fetchone()
+        cur.close()
+        return Guild.create_from_row(row)
+
+    def insert(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO guild(id, allow_timers, extract_mentions) VALUES (%s, %s, %s);'''
+        cur.execute(command, (self.id, self.allow_timers, self.extract_mentions))
+        conn.commit()
+        cur.close()
+
+
 class User:
 
     @staticmethod
