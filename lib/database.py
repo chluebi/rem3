@@ -223,7 +223,7 @@ class Allow:
         return [Allow.create_from_row(row) for row in rows]
 
     @staticmethod
-    def get_by_receiver(sender_id):
+    def get_by_receiver(receiver_id):
         cur = conn.cursor()
         command = '''SELECT * FROM Allow WHERE receiver_id = %s'''
         cur.execute(command, (receiver_id, ))
