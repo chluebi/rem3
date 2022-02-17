@@ -65,7 +65,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
                 user.change_timezone(timezone)
                 m = f'Your timezone has been set to ``{timezone}``. \n'
-                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx))
+                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
                 return
             else:
                 await ctx.send(embed=embeds.error_embed(f'``{timezone}`` is not a valid utc offset', ctx))
@@ -106,13 +106,13 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
                 tz = possible_gmt_offsets[0]
                 user.change_timezone(tz)
                 m = 'Your timezone has been set to ``{0}`` '.format(tz)
-                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx))
+                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
                 return
 
         if timezone in pytz.all_timezones:
             user.change_timezone(timezone)
             m = 'Your timezone has been set to ``{0}`` '.format(timezone)
-            await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx))
+            await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
             return
 
         m = f'''The given argument {timezone} is not valid. Be sure to either pass a time, a valid UTC offset or a valid timezone.'''
@@ -192,16 +192,17 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         else:
             guild_id = ctx.channel.guild.id
 
-        m = '''{0}
-        
-        set for you to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds))
+        timer = db.Timer.create_personal_timer(label, time.time(), timestamp_seconds, ctx.author.id, ctx.author.id, guild_id, ctx.channel.id, ctx.message.id, repeat=repeat_timestamp_seconds)
 
+        m = '''[ID: {2}]
+        {0}
+        
+        set for you to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id)
         if (repeat_timestamp_seconds > 0):
             m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
 
-        timer = db.Timer.create_personal_timer(label, time.time(), timestamp_seconds, ctx.author.id, ctx.author.id, guild_id, ctx.channel.id, ctx.message.id, repeat=repeat_timestamp_seconds)
         timer.insert()
-        await ctx.send(embed=embeds.standard_embed('Timer Set', m, ctx=ctx))
+        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
 
     @commands.command(aliases=['list'], description='Gives the entire list of reminders for a user.')
     @commands.check(checks.create_user)
@@ -237,7 +238,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
                 visual_timers.append(text)
 
-            m = f'''A list of all timers which eventually will trigger for you.
+            m = f'''A list of all timers which will eventually trigger for you.
             Total Timers: {len(receiver_timers)}
             '''
             embed_list += embeds.list_embed('Timers set for you', m, visual_timers)
