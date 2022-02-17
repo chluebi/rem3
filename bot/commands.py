@@ -120,6 +120,60 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         await ctx.send(embed=embeds.error_embed(m, ctx))
         return
 
+    @commands.command(description='Allows another user to set timers for you.')
+    @commands.check(checks.create_user)
+    async def allow(self, ctx, sender: commands.UserConverter):
+
+        user_db = db.User.get(ctx.author.id)
+        sender_db = db.User.get(sender.id)
+
+        if sender_db is None or self.bot.get_user(sender_db.id) is None:
+            m = f'''Other user not found.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        if db.Allow.get(sender_db.id, user_db.id) is not None:
+            m = f'''This user is already allowed to set timers for you.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+
+        allow = db.Allow.create(sender_db.id, user_db.id)
+        allow.insert()
+
+        m = f'''Successfully allowed {sender.mention} to set timers for you.'''
+        await ctx.send(embed=embeds.success_embed('Successfully Allowed', m, ctx=ctx))
+
+
+    @commands.command(aliases=['unallow'], description='Disallows another user to set timers for you.')
+    @commands.check(checks.create_user)
+    async def disallow(self, ctx, sender: commands.UserConverter):
+
+        user_db = db.User.get(ctx.author.id)
+        sender_db = db.User.get(sender.id)
+
+        if sender_db is None or self.bot.get_user(sender_db.id) is None:
+            m = f'''Other user not found.'''
+            
+            if sender_db is not None:
+                allow = db.Allow.get(sender_db.id, user_db.id)
+                if allow is not None:
+                    m += '\nDisallowed anyway.'
+                    allow.delete()
+
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+
+            return
+
+        allow = db.Allow.get(sender_db.id, user_db.id)
+        if allow is None:
+            m = f'''This user is already disallowed to set timers for you.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+
+        allow.delete()
+
+        m = f'''Successfully disallowed {sender.mention} to set timers for you.'''
+        await ctx.send(embed=embeds.success_embed('Successfully Disallowed', m, ctx=ctx))
+
+
     @commands.command(aliases=['when', 'timestamp'], description='Gives the absolute date and relative distance to a timestamp')
     @commands.check(checks.create_user)
     async def when_timestamp(self, ctx, timestamp):
@@ -140,10 +194,10 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         
 
-    @commands.command(aliases=['me', 'm'], description='Sets a personal reminder for the person calling the command')
+    @commands.command(aliases=['me', 'm'], description='Sets a personal timer for the person calling the command')
     @commands.check(checks.create_user)
     async def remind_me(self, ctx, timestamp, *label):
-        '''[relative or absolute timestamp] [*message attached to the reminder]'''
+        '''(relative or absolute timestamp) (*message attached to the timer)'''
         label = ' '.join(label)
         user = db.User.get(ctx.author.id)
 
@@ -205,6 +259,116 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         timer.insert()
         await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
 
+
+    @commands.command(aliases=['them'], description='Sets a personal timer for another user')
+    @commands.check(checks.create_user)
+    async def remind_them(self, ctx, receiver : commands.UserConverter, timestamp, *label):
+        '''(relative or absolute timestamp) (*message attached to the timer)'''
+        label = ' '.join(label)
+
+        author_db = db.User.get(ctx.author.id)
+        receiver_db = db.User.get(receiver.id)
+
+        if receiver_db is None or self.bot.get_user(receiver_db.id) is None:
+            m = f'''Other user not found.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        if db.Allow.get(author_db.id, receiver_db.id) is None and author_db.id != receiver_db.id:
+            m = '''You are not allowed to set timers for this user.
+They can allow you to send timers by calling ``{0} allow @you``'''.format(config['prefix'])
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            return
+
+        if len(label) == 0:
+            label = 'Unnamed Timer'
+
+        if len(label) > 1000:
+            m = f'''Timer labels are limited to at maximum 1000 characters.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        split_timestamp = timestamp.split('-')
+        if (len(split_timestamp) == 1):
+            timestamp = split_timestamp[0]
+            repeat_timestamp = 0
+        elif (len(split_timestamp) == 2):
+            timestamp = split_timestamp[0]
+            repeat_timestamp = split_timestamp[1]
+        else:
+            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        try:
+            try:
+                distance = th.timedelta_string_into_seconds(timestamp)
+                timestamp_seconds = time.time() + distance
+                absolute_timestamp = False
+            except Exception as e:
+                # Also already makes sure the absolute timestamp given is valid
+                seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, author_db.timezone)
+                timestamp_seconds = th.localize_seconds(seconds_since_epoch, author_db.timezone)
+                absolute_timestamp = True
+        except Exception as e:
+            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        if absolute_timestamp and pytz.timezone(author_db.timezone).utcoffset.total_seconds() != pytz.timezone(receiver_db.timezone).utcoffset.total_seconds():
+            def check(message):
+                return message.channel.id == ctx.channel.id and message.author.id == ctx.author.id and message.content in ['0', '1']
+            
+            m = '''You have given an absolute timestamp for a timer for a user with a different timezone than yours, please specify relative to which timezone you want to set this timer:
+Write ``0`` to set the timer relative to your timezone
+Write ``1`` to set the timer relative to the receiver's timezone'''
+            timezone_specification_message = await ctx.send(embed=embeds.standard_embed('Action Required', m))
+            
+            try:
+                reply_message = await self.bot.wait_for('message', timeout=10.0, check=check)
+            except asyncio.TimeoutError:
+                await timezone_specification_message.delete()
+                return
+            else:
+                if reply_message.content == '1':
+                    seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, receiver_db.timezone)
+                    timestamp_seconds = th.localize_seconds(seconds_since_epoch, receiver_db.timezone)
+                else:
+                    seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, author_db.timezone)
+                    timestamp_seconds = th.localize_seconds(seconds_since_epoch, author_db.timezone)
+
+        if (repeat_timestamp == 0):
+            repeat_timestamp_seconds = 0
+        else:
+            try:
+                repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
+                if (repeat_timestamp_seconds < config['min_repeat']):
+                    m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
+                    await ctx.send(embed=embeds.error_embed(m, ctx))
+                    return
+            except Exception as e:
+                m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
+                await ctx.send(embed=embeds.error_embed(m, ctx))
+                return
+
+        if is_dm(ctx.channel):
+            guild_id = 0
+        else:
+            guild_id = ctx.channel.guild.id
+
+        timer = db.Timer.create_personal_timer(label, time.time(), timestamp_seconds, ctx.author.id, receiver_db.id, guild_id, ctx.channel.id, ctx.message.id, repeat=repeat_timestamp_seconds)
+
+        m = '''[ID: {2}]
+        {0}
+        
+        set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id, receiver.mention)
+        if (repeat_timestamp_seconds > 0):
+            m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
+
+        timer.insert()
+        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
+
+
     @commands.command(description='Deletes a timer controlled by the user')
     @commands.check(checks.create_user)
     async def delete(self, ctx, id: int):
@@ -241,7 +405,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         receiver_timers = user.get_timers_by_receiver()
         author_timers = user.get_timers_by_author()
-        author_timers = [timer for timer in receiver_timers if timer not in receiver_timers]
+        author_timers = [timer for timer in author_timers if timer.author_id != timer.receiver_id]
 
         if len(receiver_timers) == 0 and len(author_timers) == 0:
             m = 'There are no timers yet connected to you.'
@@ -255,7 +419,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             for timer in receiver_timers:
                 text = f'[ID: {timer.id}] '
                 if timer.author_id != timer.receiver_id:
-                    other_user = self.bot.get_user(timer.receiver_id)
+                    other_user = self.bot.get_user(timer.author_id)
                     if other_user is None:
                         other_user = '``User not found``'
                     text += f'by {other_user} '

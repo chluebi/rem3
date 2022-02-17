@@ -161,7 +161,7 @@ class Allow:
     @staticmethod
     def create_table():
         command = '''
-            CREATE TABLE Allows ( 
+            CREATE TABLE allows ( 
             sender_id bigint,
             receiver_id bigint,
             PRIMARY KEY(sender_id, receiver_id)
@@ -175,7 +175,7 @@ class Allow:
     @staticmethod
     def delete_table():
         command = '''
-        DROP TABLE Allows CASCADE;
+        DROP TABLE allows CASCADE;
         '''
         cur = conn.cursor()
         cur.execute(command)
@@ -197,17 +197,10 @@ class Allow:
         sender_id, receiver_id = row
         return Allow(sender_id, receiver_id)
 
-    def insert(self):
-        cur = conn.cursor()
-        command = '''INSERT INTO Allow(sender_id, receiver_id) VALUES (%s, %s);'''
-        cur.execute(command, (self.sender_id, self.receiver_id))
-        conn.commit()
-        cur.close()
-
     @staticmethod
     def get(sender_id, receiver_id):
         cur = conn.cursor()
-        command = '''SELECT * FROM Allow WHERE sender_id = %s AND receiver_id = %s'''
+        command = '''SELECT * FROM allows WHERE sender_id = %s AND receiver_id = %s'''
         cur.execute(command, (sender_id, receiver_id))
         row = cur.fetchone()
         cur.close()
@@ -216,7 +209,7 @@ class Allow:
     @staticmethod
     def get_by_sender(sender_id):
         cur = conn.cursor()
-        command = '''SELECT * FROM Allow WHERE sender_id = %s'''
+        command = '''SELECT * FROM allows WHERE sender_id = %s'''
         cur.execute(command, (sender_id, ))
         rows = cur.fetchall()
         cur.close()
@@ -225,11 +218,25 @@ class Allow:
     @staticmethod
     def get_by_receiver(receiver_id):
         cur = conn.cursor()
-        command = '''SELECT * FROM Allow WHERE receiver_id = %s'''
+        command = '''SELECT * FROM allows WHERE receiver_id = %s'''
         cur.execute(command, (receiver_id, ))
         rows = cur.fetchall()
         cur.close()
         return [Allow.create_from_row(row) for row in rows]
+
+    def insert(self):
+        cur = conn.cursor()
+        command = '''INSERT INTO allows(sender_id, receiver_id) VALUES (%s, %s);'''
+        cur.execute(command, (self.sender_id, self.receiver_id))
+        conn.commit()
+        cur.close()
+
+    def delete(self):
+        cur = conn.cursor()
+        command = '''DELETE FROM allows WHERE sender_id = %s AND receiver_id = %s'''
+        cur.execute(command, (self.sender_id, self.receiver_id))
+        cur.close()
+
 
 
 class Timer:
