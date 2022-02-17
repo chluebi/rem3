@@ -30,6 +30,9 @@ async def on_command_error(ctx, error):
     if (isinstance(error, nextcord.ext.commands.CommandNotFound)):
         return
 
+    if (isinstance(error, nextcord.ext.commands.CheckFailure)):
+        return
+
     m = f'''Internal error:
 ```{error}```
 

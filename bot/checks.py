@@ -19,6 +19,6 @@ async def create_user(ctx):
 async def is_dm(ctx):
     if not channel_is_dm(ctx.channel):
         m = 'This command is only available in DMs.'
-        await ctx.send(embed=embeds.error_embed(m, ctx))
+        await ctx.send(embed=embeds.error_embed(m, ctx, title='Check Failure'))
         return False
     return True

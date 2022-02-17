@@ -18,8 +18,8 @@ def success_embed(title, description, ctx):
 def info_embed(description, ctx):
     return standard_embed('Info', description, color=gray)
 
-def error_embed(description, ctx):
-    return standard_embed('Error Occurred', description, color=red)
+def error_embed(description, ctx, title='Error Occurred'):
+    return standard_embed(title, description, color=red)
 
 
 def list_embed(title, description, list, color=blue, ctx=None):

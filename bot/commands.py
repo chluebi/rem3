@@ -1,6 +1,6 @@
 from nextcord.gateway import DiscordClientWebSocketResponse
 import lib.database as db
-from lib.common import parse_config, get_message_link
+from lib.common import parse_config, get_message_link, get_channel_link
 from bot.util import is_dm
 import lib.time_handle as th
 from bot import embeds, checks
@@ -155,7 +155,6 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             return
 
         split_timestamp = timestamp.split('-')
-        print(split_timestamp)
         if (len(split_timestamp) == 1):
             timestamp = split_timestamp[0]
             repeat_timestamp = 0
@@ -212,25 +211,60 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         user = db.User.get(ctx.author.id)
 
-        timers = user.get_timers()
-        visual_timers = []
+        receiver_timers = user.get_timers_by_receiver()
+        author_timers = user.get_timers_by_author()
+        author_timers = [timer for timer in receiver_timers if timer not in receiver_timers]
 
-        if len(timers) == 0:
-            m = 'You have not set any timers yet.'
-            await ctx.send(m)
+        if len(receiver_timers) == 0 and len(author_timers) == 0:
+            m = 'There are no timers yet connected to you.'
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='No Timers'))
             return
 
-        for timer in timers:
-            if (timer.repeat_seconds != 0):
-                visual_timers.append(
-                    f'[ID: {timer.id}] **{timer.label[:20]}** in <t:{int(timer.triggered_timestamp)}:R> repeating every {th.timedelta_seconds_to_string(timer.repeat_seconds)}'
-                )
-            else:
-                visual_timers.append(
-                    f'[ID: {timer.id}] **{timer.label[:20]}** in <t:{int(timer.triggered_timestamp)}:R>'
-                )
+        embed_list = []
 
-        embed_list = embeds.list_embed('All timers', 'A list of all timers which eventually will trigger for you.', visual_timers)
+        if len(receiver_timers) > 0:
+            visual_timers = []
+            for timer in receiver_timers:
+                text = f'[ID: {timer.id}] '
+                if timer.author_id != timer.receiver_id:
+                    other_user = self.bot.get_user(timer.receiver_id)
+                    if other_user is None:
+                        other_user = '``User not found``'
+                    text += f'by {other_user} '
+                text += f'**{timer.label[:20]}** <t:{int(timer.triggered_timestamp)}:R>'
+                if (timer.repeat_seconds != 0):
+                    text += f' repeating every {th.timedelta_seconds_to_string(timer.repeat_seconds)}'
+
+                visual_timers.append(text)
+
+            m = f'''A list of all timers which eventually will trigger for you.
+            Total Timers: {len(receiver_timers)}
+            '''
+            embed_list += embeds.list_embed('Timers set for you', m, visual_timers)
+
+        if len(author_timers) > 0:
+            visual_timers = []
+            for timer in author_timers:
+                text = f'[ID: {timer.id}] '
+                if timer.receiver_guild_id == 0:
+                    other_user = self.bot.get_user(timer.receiver_id)
+                    if other_user is None:
+                        other_user = '``User not found``'
+                    text += f'for {other_user} '
+                else:
+                    channel_link = get_channel_link(timer.receiver_guild_id, timer.receiver_channel_id)
+                    text += f'in [here]({channel_link})'
+
+                text += f'**{timer.label[:20]}** <t:{int(timer.triggered_timestamp)}:R>'
+                if (timer.repeat_seconds != 0):
+                    text += f' repeating every {th.timedelta_seconds_to_string(timer.repeat_seconds)}'
+                
+                visual_timers.append(text)
+
+            m = f'''A list of all timers set by you.
+            Total Timers: {len(author_timers)}
+            '''
+            embed_list += embeds.list_embed('Timers created by you', m, visual_timers)
 
         for e in embed_list:
             await ctx.send(embed=e)

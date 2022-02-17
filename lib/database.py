@@ -81,9 +81,17 @@ class User:
         conn.commit()
         cur.close()
 
-    def get_timers(self):
+    def get_timers_by_receiver(self):
         cur = conn.cursor()
         command = '''SELECT * FROM timers WHERE receiver_id = %s'''
+        cur.execute(command, (self.id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
+
+    def get_timers_by_author(self):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE author_id = %s'''
         cur.execute(command, (self.id,))
         rows = cur.fetchall()
         cur.close()
