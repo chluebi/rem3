@@ -321,6 +321,24 @@ class Timer:
         cur.close()
         return [Timer.create_from_row(row) for row in rows]
 
+    @staticmethod
+    def get_by_author(id, author_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE id = %s AND author_id = %s'''
+        cur.execute(command, (id, author_id))
+        row = cur.fetchone()
+        cur.close()
+        return Timer.create_from_row(row)
+
+    @staticmethod
+    def get_by_receiver(id, receiver_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE id = %s AND receiver_id = %s'''
+        cur.execute(command, (id, receiver_id))
+        row = cur.fetchone()
+        cur.close()
+        return Timer.create_from_row(row)
+
     def __init__(self, id, label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id):
         self.id = id
         self.label = label

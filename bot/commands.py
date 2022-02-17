@@ -1,3 +1,4 @@
+from pydoc import describe
 from nextcord.gateway import DiscordClientWebSocketResponse
 import lib.database as db
 from lib.common import parse_config, get_message_link, get_channel_link
@@ -203,6 +204,32 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         timer.insert()
         await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
+
+    @commands.command(description='Deletes a timer controlled by the user')
+    @commands.check(checks.create_user)
+    async def delete(self, ctx, id: int):
+        '''Timers that can be deleted are either:
+- timers set by the user
+- timers set for the user
+- timers set in a guild that the user has admin rights in
+'''
+        user = db.User.get(ctx.author.id)
+
+        timer = db.Timer.get_by_author(id, user.id)
+        if timer is None:
+            timer = db.Timer.get_by_receiver(id, user.id)
+
+        if timer is None:
+            title = 'Timer not Found'
+            m = f'Timer of id ``{id}`` not found.'
+            await ctx.send(embed=embeds.error_embed(m, ctx, title=title))
+            return
+
+        timer.delete()
+        title = 'Timer Deleted'
+        m = f'Timer of id ``{id}`` deleted.'
+        await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
+
 
     @commands.command(aliases=['list'], description='Gives the entire list of reminders for a user.')
     @commands.check(checks.create_user)
