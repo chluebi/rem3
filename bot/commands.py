@@ -173,6 +173,121 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         m = f'''Successfully disallowed {sender.mention} to set timers for you.'''
         await ctx.send(embed=embeds.success_embed('Successfully Disallowed', m, ctx=ctx))
 
+    
+    @commands.group(aliases=['guild'], description='Allows for managing guild settings by administrators')
+    async def guild_settings(self, ctx):
+        if ctx.invoked_subcommand is None:
+            guild = db.Guild.get(ctx.guild.id)
+            title = f'Guild Settings'
+            m = ''
+            m += '``allow_timers``{0}\n Allow Timers to trigger inside of the guild\n'.format('✔️' if guild.allow_timers else '❌')
+            m += '``allow_repeat``{0}\n Allow Repeating Timers to trigger inside of the guild\n'.format('✔️' if guild.allow_repeating else '❌')
+            m += '``extract_mentions`` {0}\n Extract Mentions from the timers triggered inside of the guild and send them seperately so that they ping the members and roles. For role pings (including @everyone and @here) the permissions of the user are checked when the timer is triggered.\n'.format('✔️' if guild.extract_mentions else '❌')
+            m += '\n'
+            m += 'To allow or disallow any of these settings in this guild, an admin can run ``{0} guild <setting> [allow|disallow]``'.format(config['prefix'])
+            ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+
+    @guild_settings.command(aliases=['allow_timers', 'timers'], description='Allows/Disallows Timers to trigger in the guild')
+    async def guild_allow_timers(self, ctx, *change):
+
+        guild = db.Guild.get(ctx.guild.id)
+        permissions = ctx.channel.permissions_for(ctx.author)
+
+        if len(change) == 0:
+            title = 'Guild Settings'
+            m = ''
+            m += '``allow_timers``{0}\n Allow Timers to trigger inside of the guild\n'.format('✔️' if guild.allow_timers else '❌')
+            m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_timers [allow|disallow]``'.format(config['prefix'])
+            ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            return
+
+        if not permissions.administrator:
+            m = 'Changing Guild Settings can only be done by administrators.'
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            return
+
+        if change in ['true', 'allow', 'enable']:
+            guild.allow_timers = True
+        elif change in ['false', 'disallow', 'disable']:
+            guild.allow_timers = False
+        else:
+            m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        guild.update()
+        title = 'Guild successfully updated'
+        m = '``allow_timers`` has been set to ``{0}``'.format(guild.allow_timers)
+        await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+
+
+    @guild_settings.command(aliases=['allow_repeat', 'allow_repeating', 'repeat'], description='Allows/Disallows Repeating Timers to trigger in the guild')
+    async def guild_allow_repeat(self, ctx, *change):
+
+        guild = db.Guild.get(ctx.guild.id)
+        permissions = ctx.channel.permissions_for(ctx.author)
+
+        if len(change) == 0:
+            title = 'Guild Settings'
+            m = ''
+            m += '``allow_timers``{0}\n Allow Repeating Timers to trigger inside of the guild\n'.format('✔️' if guild.allow_timers else '❌')
+            m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_repeat [allow|disallow]``'.format(config['prefix'])
+            ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            return
+
+        if not permissions.administrator:
+            m = 'Changing Guild Settings can only be done by administrators.'
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            return
+
+        if change in ['true', 'allow', 'enable']:
+            guild.allow_repeating = True
+        elif change in ['false', 'disallow', 'disable']:
+            guild.allow_repeating = False
+        else:
+            m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        guild.update()
+        title = 'Guild successfully updated'
+        m = '``allow_repeat`` has been set to ``{0}``'.format(guild.allow_timers)
+        await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+
+
+    @guild_settings.command(aliases=['extract_mentions', 'mentions'], description='Allows/Disallows Timers to trigger in the guild')
+    async def guild_extract_mentions(self, ctx, *change):
+
+        guild = db.Guild.get(ctx.guild.id)
+        permissions = ctx.channel.permissions_for(ctx.author)
+
+        if len(change) == 0:
+            title = 'Guild Settings'
+            m = ''
+            m += '``extract_mentions`` {0}\n Extract Mentions from the timers triggered inside of the guild and send them seperately so that they ping the members and roles. For role pings (including @everyone and @here) the permissions of the user are checked when the timer is triggered.'.format('✔️' if guild.allow_timers else '❌')
+            m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild extract_mentions [allow|disallow]``'.format(config['prefix'])
+            ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            return
+
+        if not permissions.administrator:
+            m = 'Changing Guild Settings can only be done by administrators.'
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            return
+
+        if change in ['true', 'allow', 'enable']:
+            guild.extract_mentions = True
+        elif change in ['false', 'disallow', 'disable']:
+            guild.extract_mentions = False
+        else:
+            m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        guild.update()
+        title = 'Guild successfully updated'
+        m = '``extract_mentions`` has been set to ``{0}``'.format(guild.allow_timers)
+        await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+
 
     @commands.command(aliases=['when', 'timestamp'], description='Gives the absolute date and relative distance to a timestamp')
     @commands.check(checks.create_user)
@@ -368,6 +483,81 @@ Write ``1`` to set the timer relative to the receiver's timezone'''
         timer.insert()
         await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
 
+    @commands.command(aliases=['here'], description='Sets a timer in the current channel')
+    @commands.check(checks.is_not_dm)
+    @commands.check(checks.create_user)
+    @commands.check(checks.create_guild)
+    async def remind_here(self, ctx, receiver : commands.UserConverter, timestamp, *label):
+        '''(relative or absolute timestamp) (*message attached to the timer)'''
+        label = ' '.join(label)
+        user = db.User.get(ctx.author.id)
+        guild = db.Guild.get(ctx.guild.id)
+
+        permissions = ctx.channel.permissions_for(ctx.author)
+
+        if not guild.allow_timers and not permissions.administrator:
+            m = '''You are not allowed to set timers in this guild.
+Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
+            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            return
+
+        if len(label) == 0:
+            label = 'Unnamed Timer'
+
+        if len(label) > 1000:
+            m = f'''Timer labels are limited to at maximum 1000 characters.'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        split_timestamp = timestamp.split('-')
+        if (len(split_timestamp) == 1):
+            timestamp = split_timestamp[0]
+            repeat_timestamp = 0
+        elif (len(split_timestamp) == 2):
+            timestamp = split_timestamp[0]
+            repeat_timestamp = split_timestamp[1]
+            if not guild.allow_repeating and not permissions.administrator:
+                m = '''You are not allowed to set repeating timers in this guild.
+    Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
+                await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+                return
+        else:
+            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        try:
+            timestamp_seconds = th.parse_time_string(timestamp, user)
+        except Exception as e:
+            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
+            await ctx.send(embed=embeds.error_embed(m, ctx))
+            return
+
+        if (repeat_timestamp == 0):
+            repeat_timestamp_seconds = 0
+        else:
+            try:
+                repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
+                if (repeat_timestamp_seconds < config['min_repeat']):
+                    m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
+                    await ctx.send(embed=embeds.error_embed(m, ctx))
+                    return
+            except Exception as e:
+                m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
+                await ctx.send(embed=embeds.error_embed(m, ctx))
+                return
+
+        timer = db.Timer.create_guild_timer(label, time.time(), timestamp_seconds, ctx.author.id, ctx.guild.id, ctx.channel.id, ctx.message.id, ctx.guild.id, ctx.channel.id, repeat=repeat_timestamp_seconds)
+
+        m = '''[ID: {2}]
+        {0}
+        
+        set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id)
+        if (repeat_timestamp_seconds > 0):
+            m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
+
+        timer.insert()
+        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
 
     @commands.command(description='Deletes a timer controlled by the user')
     @commands.check(checks.create_user)

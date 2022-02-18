@@ -19,13 +19,22 @@ async def create_user(ctx):
 async def create_guild(ctx):
     guild = db.Guild.get(ctx.guild.id)
     if guild is None:
-        guild = db.Guild(ctx.guild.id, False, False)
+        guild = db.Guild(ctx.guild.id, False, False, False)
         guild.insert()
+        m = 'This guild has just been added to the database of guilds. By Default most actions including the ability to set timers inside of the guild are turned off. Admins can run ``{} guild`` to configure the settings.'.format(config['prefix'])
+        await ctx.send(embed=embeds.standard_embed('Guild created', m, ctx=ctx))
     return True
 
 async def is_dm(ctx):
     if not channel_is_dm(ctx.channel):
         m = 'This command is only available in DMs.'
+        await ctx.send(embed=embeds.error_embed(m, ctx, title='Check Failure'))
+        return False
+    return True
+
+async def is_not_dm(ctx):
+    if not channel_is_dm(ctx.channel):
+        m = 'This command is cannot be used in DMs.'
         await ctx.send(embed=embeds.error_embed(m, ctx, title='Check Failure'))
         return False
     return True

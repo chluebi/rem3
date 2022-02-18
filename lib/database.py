@@ -23,6 +23,7 @@ class Guild:
             CREATE TABLE guilds ( 
             id bigint PRIMARY KEY, 
             allow_timers boolean,
+            allow_repeating boolean,
             extract_mentions boolean
         );'''
 
@@ -41,21 +42,22 @@ class Guild:
         conn.commit()
         cur.close()
 
-    def __init__(self, id, allow_timers, extract_mentions):
+    def __init__(self, id, allow_timers, allow_repeating, extract_mentions):
         self.id = id
         self.allow_timers = allow_timers
         self.extract_mentions = extract_mentions
+        self.allow_repeating = allow_repeating
 
     @staticmethod
-    def create(id, allow_timers, extract_mentions):
-        return Guild(id, allow_timers, extract_mentions)
+    def create(id, allow_timers, allow_repeating, extract_mentions):
+        return Guild(id, allow_timers, allow_repeating, extract_mentions)
 
     @staticmethod
     def create_from_row(row):
         if row is None:
             return None
-        id, allow_timers, extract_mentions = row
-        return create(id, allow_timers, extract_mentions)
+        id, allow_timers, allow_repeating, extract_mentions = row
+        return Guild.create(id, allow_timers, allow_repeating, extract_mentions)
 
     @staticmethod
     def get(id):
@@ -68,8 +70,19 @@ class Guild:
 
     def insert(self):
         cur = conn.cursor()
-        command = '''INSERT INTO guild(id, allow_timers, extract_mentions) VALUES (%s, %s, %s);'''
-        cur.execute(command, (self.id, self.allow_timers, self.extract_mentions))
+        command = '''INSERT INTO guild(id, allow_timers, allow_repeating, extract_mentions) VALUES (%s, %s, %s, %s);'''
+        cur.execute(command, (self.id, self.allow_timers, self.allow_repeating, self.extract_mentions))
+        conn.commit()
+        cur.close()
+
+    def update(self):
+        cur = conn.cursor()
+        command = '''UPDATE guilds
+                    SET allow_timers = %s,
+                    allow_repeating = %s,
+                    extract_mentions = %s
+                    WHERE id = %s;'''
+        cur.execute(command, (self.allow_timers, self.allow_repeating, self.extract_mentions, self.id))
         conn.commit()
         cur.close()
 
@@ -384,6 +397,22 @@ class Timer:
         receiver_id = receiver_id
         receiver_guild_id = 0
         receiver_channel_id = 0
+        receiver_message_id = 0
+        return Timer.create(label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id)
+
+    @staticmethod
+    def create_guild_timer(label, created_timestamp, triggered_timestamp, author_id, author_guild_id, author_channel_id, author_message_id, receiver_guild_id, receiver_channel_id, repeat=-1):
+        label = label
+        created_timestamp = created_timestamp
+        triggered_timestamp = triggered_timestamp
+        repeat_seconds = repeat
+        author_id = author_id
+        author_guild_id = author_guild_id
+        author_channel_id = author_channel_id
+        author_message_id = author_message_id
+        receiver_id = 0
+        receiver_guild_id = receiver_guild_id
+        receiver_channel_id = receiver_channel_id
         receiver_message_id = 0
         return Timer.create(label, created_timestamp, triggered_timestamp, repeat_seconds, author_id, author_guild_id, author_channel_id, author_message_id, receiver_id, receiver_guild_id, receiver_channel_id, receiver_message_id)
 
