@@ -23,6 +23,12 @@ async def on_ready():
     print(f'bot ready {bot.user.name}')
     print('------------------')
 
+bot.remove_command('help')
+
+@bot.command(name='help')
+async def help(ctx):
+    await ctx.send(embed=embeds.standard_embed('Help', 'Help can found be on the [official website.](https://chluebi.github.io/rem3/)', ctx=ctx))
+
 @bot.event
 async def on_command_error(ctx, error):
     error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
