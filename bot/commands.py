@@ -28,7 +28,7 @@ class TimerManager(commands.Cog):
     @commands.command(aliases=['timezone', 'tz'], description="Sets the user's timezone")
     @commands.check(checks.create_user)
     async def set_timezone(self, ctx, timezone=None):
-        '''(timezone|tz) [timezone|utc offset|current time]'''
+        '''(timezone|tz) <timezone|utc offset|current time>'''
 
         user = db.User.get(ctx.author.id)
 
@@ -118,7 +118,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
     @commands.command(description='Allows another user to set timers for you.')
     @commands.check(checks.create_user)
     async def allow(self, ctx, sender: commands.UserConverter):
-        '''(other user)'''
+        '''<user>'''
 
         user_db = db.User.get(ctx.author.id)
         sender_db = db.User.get(sender.id)
@@ -142,7 +142,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
     @commands.command(aliases=['unallow'], description='Disallows another user to set timers for you.')
     @commands.check(checks.create_user)
     async def disallow(self, ctx, sender: commands.UserConverter):
-        '''(other user)'''
+        '''<user>'''
 
         user_db = db.User.get(ctx.author.id)
         sender_db = db.User.get(sender.id)
@@ -173,6 +173,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
     
     @commands.group(aliases=['guild'], description='Allows for managing guild settings by administrators')
     async def guild_settings(self, ctx):
+        '''<setting> (allow|disallow) or list'''
         if ctx.invoked_subcommand is None:
             guild = db.Guild.get(ctx.guild.id)
             title = f'Guild'
@@ -294,6 +295,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
     @guild_settings.command(aliases=['timer_list', 'list'], description='Allows/Disallows Repeating Timers to trigger in the guild')
     async def guild_timer_list(self, ctx, *change):
+        '''[DM only]'''
 
         guild = db.Guild.get(ctx.guild.id)
         wait_message = await ctx.send(embed=embeds.standard_embed('Loading', 'Collecting all timers for this guild, please stand by', ctx=ctx))
@@ -359,7 +361,7 @@ Total Timers: {len(visual_timers)}
     @commands.command(aliases=['when', 'timestamp'], description='Gives the absolute date and relative distance to a timestamp')
     @commands.check(checks.create_user)
     async def when_timestamp(self, ctx, timestamp):
-        '''(relative timestamp|absolute timestamp)'''
+        '''<timestamp>'''
 
         user = db.User.get(ctx.author.id)
 
@@ -379,7 +381,7 @@ Total Timers: {len(visual_timers)}
     @commands.command(aliases=['me', 'm'], description='Sets a personal timer for the person calling the command')
     @commands.check(checks.create_user)
     async def remind_me(self, ctx, timestamp, *label):
-        '''(relative timestamp|absolute timestamp) (*message attached to the timer)'''
+        '''<timestamp> *<message>'''
         label = ' '.join(label)
         user = db.User.get(ctx.author.id)
 
@@ -445,7 +447,7 @@ set for you to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
     @commands.command(aliases=['them'], description='Sets a personal timer for another user')
     @commands.check(checks.create_user)
     async def remind_them(self, ctx, receiver : commands.UserConverter, timestamp, *label):
-        '''(other user) (relative timestamp|absolute timestamp) (*message attached to the timer)'''
+        '''<user> <timestamp> *<message>'''
         label = ' '.join(label)
 
         author_db = db.User.get(ctx.author.id)
@@ -555,7 +557,7 @@ set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
     @commands.check(checks.create_user)
     @commands.check(checks.create_guild)
     async def remind_here(self, ctx, timestamp, *label):
-        '''(relative or absolute timestamp) (*message attached to the timer)'''
+        '''<timestamp> *<message>'''
         label = ' '.join(label)
         user = db.User.get(ctx.author.id)
         guild = db.Guild.get(ctx.guild.id)
@@ -630,7 +632,7 @@ set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_secon
     @commands.command(aliases=['there'], description='Sets a timer in the specified channel')
     @commands.check(checks.create_user)
     async def remind_there(self, ctx, receiver_channel, timestamp, *label):
-        '''(<channel mention>|<channel id>|<guild id>/<channel id>) (relative timestamp|absolute timestamp) (*message attached to the timer)'''
+        '''<receiving channel> <timestamp> *<message>'''
         label = ' '.join(label)
         user = db.User.get(ctx.author.id)
         
@@ -755,11 +757,7 @@ set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
     @commands.command(description='Deletes a timer controlled by the user')
     @commands.check(checks.create_user)
     async def delete(self, ctx, id: int):
-        '''Timers that can be deleted are either:
-- timers set by the user
-- timers set for the user
-- timers set in a guild that the user has admin rights in
-'''
+        '''<message_id>'''
         user = db.User.get(ctx.author.id)
 
         timer = db.Timer.get_by_author(id, user.id)
