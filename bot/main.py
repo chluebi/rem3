@@ -28,9 +28,15 @@ async def on_command_error(ctx, error):
     error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
     
     if (isinstance(error, nextcord.ext.commands.CommandNotFound)):
+        await ctx.message.add_reaction('❌')
         return
 
     if (isinstance(error, nextcord.ext.commands.CheckFailure)):
+        await ctx.message.add_reaction('❌')
+        return
+
+    if (isinstance(error, nextcord.ext.commands.MissingRequiredArgument)):
+        await ctx.message.add_reaction('❌')
         return
 
     m = f'''Internal error:

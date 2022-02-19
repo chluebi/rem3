@@ -70,7 +70,7 @@ class Guild:
 
     def insert(self):
         cur = conn.cursor()
-        command = '''INSERT INTO guild(id, allow_timers, allow_repeating, extract_mentions) VALUES (%s, %s, %s, %s);'''
+        command = '''INSERT INTO guilds(id, allow_timers, allow_repeating, extract_mentions) VALUES (%s, %s, %s, %s);'''
         cur.execute(command, (self.id, self.allow_timers, self.allow_repeating, self.extract_mentions))
         conn.commit()
         cur.close()
@@ -86,6 +86,13 @@ class Guild:
         conn.commit()
         cur.close()
 
+    def get_timers(self):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE receiver_guild_id = %s'''
+        cur.execute(command, (self.id,))
+        rows = cur.fetchall()
+        cur.close()
+        return [Timer.create_from_row(row) for row in rows]
 
 class User:
 
@@ -355,6 +362,15 @@ class Timer:
         cur = conn.cursor()
         command = '''SELECT * FROM timers WHERE id = %s AND receiver_id = %s'''
         cur.execute(command, (id, receiver_id))
+        row = cur.fetchone()
+        cur.close()
+        return Timer.create_from_row(row)
+
+    @staticmethod
+    def get_by_guild(id, guild_id):
+        cur = conn.cursor()
+        command = '''SELECT * FROM timers WHERE id = %s AND receiver_guild_id = %s'''
+        cur.execute(command, (id, guild_id))
         row = cur.fetchone()
         cur.close()
         return Timer.create_from_row(row)

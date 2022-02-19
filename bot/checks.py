@@ -33,8 +33,8 @@ async def is_dm(ctx):
     return True
 
 async def is_not_dm(ctx):
-    if not channel_is_dm(ctx.channel):
-        m = 'This command is cannot be used in DMs.'
+    if channel_is_dm(ctx.channel):
+        m = 'This command cannot be used in DMs.'
         await ctx.send(embed=embeds.error_embed(m, ctx, title='Check Failure'))
         return False
     return True
