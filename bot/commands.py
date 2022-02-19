@@ -256,7 +256,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         guild.update()
         title = 'Guild successfully updated'
-        m = '``allow_repeat`` has been set to ``{0}``'.format(guild.allow_timers)
+        m = '``allow_repeat`` has been set to ``{0}``'.format(guild.allow_repeating)
         await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
 
     @guild_settings.command(aliases=['extract_mentions', 'mentions'], description='Allows/Disallows Timers to trigger in the guild')
@@ -290,7 +290,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         guild.update()
         title = 'Guild successfully updated'
-        m = '``extract_mentions`` has been set to ``{0}``'.format(guild.allow_timers)
+        m = '``extract_mentions`` has been set to ``{0}``'.format(guild.extract_mentions)
         await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
 
 
@@ -918,13 +918,13 @@ This timer should've triggered <t:{int(timer.triggered_timestamp)}:R>. (Error Ma
             if timer.author_id == timer.receiver_id:
                 m += f'\nThis timer was set in [this message]({created_message_link}).'
 
-            if timer.receiver_guild_id != 0 and timer.author_guild_id == timer.receiver_guild_id and timer.author_channel_id == timer.receiver_channel_id:
-                m += f'\nThis timer was set in [this message]({created_message_link}).'
-
             if timer.receiver_guild_id != 0:
-                default_role = [role for role in receiver_guild.roles if role.is_default()][0]
-                if timer.author_guild_id == timer.receiver_guild_id and receiver.permissions_for(default_role).read_messages:
+                if timer.author_guild_id == timer.receiver_guild_id and timer.author_channel_id == timer.receiver_channel_id:
                     m += f'\nThis timer was set in [this message]({created_message_link}).'
+                else:
+                    default_role = [role for role in receiver_guild.roles if role.is_default()][0]
+                    if timer.author_guild_id == timer.receiver_guild_id and receiver.permissions_for(default_role).read_messages:
+                        m += f'\nThis timer was set in [this message]({created_message_link}).'
 
             if (timer.repeat_seconds > 0):
                 m += '\nThis timer repeats every {0}'.format(th.timedelta_seconds_to_string(timer.repeat_seconds))
@@ -935,7 +935,24 @@ This timer should've triggered <t:{int(timer.triggered_timestamp)}:R>. (Error Ma
             if author is not None:
                 embed.set_footer(text=f'Timer created by {str(author)}', icon_url=author.avatar.url)
 
-            await receiver.send(embed=embed)
+            mention_strings = []
+            if timer.receiver_guild_id != 0:
+                receiver_guild_db = db.Guild.get(receiver_guild.id)
+                if receiver_guild_db.extract_mentions:
+                    if receiver.permissions_for(author).mention_everyone:
+                        if re.match(r'@everyone', timer.label):
+                            mention_strings.append('@everyone')
+                        if re.match(r'@here', timer.label):
+                            mention_strings.append('@here')
+                    for mention in re.findall(r'@[!&]?[0-9]{17,20}', timer.label):
+                        if mention not in mention_strings:
+                            mention_strings.append(f'<{mention}>')
+            
+            if len(mention_strings) > 0:
+                mentions = ' '.join(mention_strings)
+                await receiver.send(mentions, embed=embed)
+            else:
+                await receiver.send(embed=embed)
 
             if timer.repeat_seconds > 0:
                 if timer.receiver_guild_id != 0:
