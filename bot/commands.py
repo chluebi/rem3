@@ -940,9 +940,10 @@ This timer should've triggered <t:{int(timer.triggered_timestamp)}:R>. (Error Ma
                 receiver_guild_db = db.Guild.get(receiver_guild.id)
                 if receiver_guild_db.extract_mentions:
                     if receiver.permissions_for(author).mention_everyone:
-                        if re.match(r'@everyone', timer.label):
+                        print(timer.label)
+                        if re.search(r'@everyone', timer.label) is not None:
                             mention_strings.append('@everyone')
-                        if re.match(r'@here', timer.label):
+                        if re.search(r'@here', timer.label) is not None:
                             mention_strings.append('@here')
                     for mention in re.findall(r'@[!&]?[0-9]{17,20}', timer.label):
                         if mention not in mention_strings:
