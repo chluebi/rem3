@@ -1,0 +1,190 @@
+<head>
+    <link rel="stylesheet" href="main.css">
+    <title>Rem 3</title>
+</head>
+<body>
+    <div id="nav">
+        <a class="nav-element" href="#intro">
+            Introduction
+        </a>
+        <a class="nav-element" href="#help">
+            Getting Started
+        </a>
+        <a class="nav-element" href="#privacy">
+            Privacy
+        </a>
+        <a class="nav-element" href="https://github.com/chluebi/rem3">
+            Source Code
+        </a>
+    </div>
+    <main>
+        <div id="intro" class="container">
+            <div class="title">
+                Rem3
+            </div>
+            <div class="paragraph">
+                A bot focused on doing one thing well: Reminding you.
+                The bot is made to be as versatile as possible: It works in guilds, direct messages and with friends.
+            </div>
+        </div>
+        <div id="help" class="container">
+            <div class="title">
+                Getting Started
+            </div>
+            <div class="paragraph">
+                Here is how to set a personal reminder for in 3 minutes:
+                <br>(You can send this command in a guild with Rem3 or in your direct messages with her)
+            </div>
+            <div class="command">
+                rem me 3m
+            </div>
+            <div class="paragraph">
+                The "me" stands for the fact that you want to be reminded yourself in your direct messages. <br>
+                The "3m" stands for "3 minutes" which is the timestamp of when you want to be reminded. Rem3 also supports other general time units, such as seconds (s), hours (h), days (d), weeks (w) and years (y).
+            </div>
+            <div class="paragraph">
+                You can also attach a message to the timers you set:
+            </div>
+            <div class="command">
+                rem me 10s This timer will be triggered in 10s :)
+            </div>
+            <div class="paragraph">
+                You may also be interested in setting reminders with "absolute timestamps", like e.g. at 20:00.
+                For this Rem3 needs to know when that timestamp *for you* is, because it depends on your timezone.
+                <br>
+                <br>
+                The easiest way to set your timezone is as follows. Use:
+            </div>
+            <div class="command">
+                rem tz 
+            </div>
+            <div class="paragraph">
+                Now the command will give you instructions to set your timezone by typing your current time, so let's say your clock is showing that it is 14:15.
+            </div>
+            <div class="command">
+                rem tz 14:15
+            </div>
+            <div class="paragraph">
+                And now you are able to set your timers with absolute timestamps:
+            </div>
+            <div class="command">
+                rem me 20:00 do the dishes
+            </div>
+            <div class="paragraph">
+                Some tasks, like for example doing the dishes of course occur repeatedly and can therefore be scheduled.
+                Rem3 provides you with tools to set repeating timers. Here is a timer that repeats at 20:00 every day:
+            </div>
+            <div class="command">
+                rem me 20:00-1d do the dishes
+            </div>
+            <div class="paragraph">
+                Note that the "-" character is used to delineate the timestamp to trigger the timer and the period of the repetition.
+            </div>
+            <div class="paragraph">
+                Generally it is not recommended using too many repeating timers, so we may want to remove the last one we set.
+                Let us call a list of all our timers:
+            </div>
+            <div class="command">
+                rem list
+            </div>
+            <div class="paragraph">
+                As one can see, all timers have an ID attached which allows you to reference them for certain actions. The most important one being deletion:
+            </div>
+            <div class="command">
+                rem delete [id]
+            </div>
+            <div class="paragraph">
+                This deletes the timer referenced and any repetition associated with it.
+            </div>
+            <div class="title">
+                Setting Timers for Friends
+            </div>
+            <div class="paragraph">
+                You may be interested in allowing a friend of yours to set a timer for you.
+                Rem makes this possible, but first your friend must allow you to do as such:
+                (This system is implemented to prevent abuse of Rem3 to get around blocking)
+            </div>
+            <div class="command">
+                rem allow [user]
+            </div>
+            <div class="paragraph">
+                It is recommended to do this in a shared guild with Rem3 as one can then use @mentions.
+            </div>
+            <div class="paragraph">
+                Once your friend has called this command to allow you set timers for them, you are able to do the following:
+            </div>
+            <div class="command">
+                rem them [user] [timestamp] [*message]
+            </div>
+            <div class="paragraph">
+                Please note that if you want to call this in your own DMs, you will need to use their ID.
+            </div>
+            <div class="paragraph">
+                If you want to take away the permission of someone to set timers for you, you can use
+            </div>
+            <div class="command">
+                rem disallow [user]
+            </div>
+            <div class="title">
+                Setting Timers in Guilds
+            </div>
+            <div class="paragraph">
+                Just as you can set a timer for yourself, you are also able to set a timer in a specific guild
+            </div>
+            <div class="command">
+                rem here [timestamp] [*message]
+            </div>
+            <div class="paragraph">
+                Please note that by default it is not allowed to set timers in a guild and it needs to be turned on by a Guild Administrator.
+                Additionally to this, repeating timers can also be enabled.
+            </div>
+            <div class="paragraph">
+                If on the other hand you want to set a timer from somewhere else *into* a specific channel, you will need to use the following command:
+            </div>
+            <div class="command">
+                rem there [channel] [timestamp] [*message]
+            </div>
+            <div class="paragraph">
+                A channel can either be #mentioned, or its ID can be used. It is even possible to send a timer from outside of the server into the server by using [guild id]/[channel id].
+            </div>
+            <div class="title">
+                Guild Settings
+            </div>
+            <div class="paragraph">
+                The following command gives an overview of a guild's settings:
+            </div>
+            <div class="command">
+                rem guild
+            </div>
+            <div class="paragraph">
+                To change these settings, Administrators are able to call
+            </div>
+            <div class="command">
+                rem guild [setting] [allow|disallow]
+            </div>
+            <div class="paragraph">
+                For example allowing users to set timers inside of the guild may be done as follows:
+            </div>
+            <div class="command">
+                rem guild allow_timers allow
+            </div>
+            <div class="paragraph">
+                It may also be of interest (especially for Guild Moderators) what timers are set up to trigger in the guild:
+            </div>
+            <div class="command">
+                rem guild list
+            </div>
+        </div>
+        <div id="privacy" class="container">
+            <div class="title">
+                What About my Data?
+            </div>
+            <div class="paragraph">
+                It is crucial to note that Rem3 is not focused on security of data. All timers are stored in plain-text and this is a hobbyist project.
+                But as data harvesting scandals of Discord Bots have become more common it should be noted that Rem3 stores at little data as possible.
+                No logs of old timers are being kept, no usernames and guild structures are being stored. Everything is stored and referred to by IDs.
+                If you are not sure if you want to trust Rem3, you can check out the <a href="https://github.com/chluebi/rem3">Source Code</a>.
+            </div>
+        </div>
+    </main>
+</body>
