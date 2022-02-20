@@ -2,9 +2,8 @@ from pydoc import describe
 from nextcord.gateway import DiscordClientWebSocketResponse
 import lib.database as db
 from lib.common import parse_config, get_message_link, get_channel_link
-from bot.util import is_dm
 import lib.time_handle as th
-from bot import embeds, checks
+from bot import embeds, checks, util
 
 import time
 import calendar
@@ -47,7 +46,9 @@ If this is the correct timezone the following two times should be identical:
 If this is not the case run "{1} timezone <t:{3}:t>" to set it to your current timezone.
 Alternatively you can also type in your UTC offset or if needed your specific timezone.
             '''.format(user.timezone, config['prefix'], config['timezone_list'], int(time.time()), user_now)
-            await ctx.send(embed=embeds.standard_embed('Timezone', m, ctx=ctx))
+            
+            embed = embeds.standard_embed('Timezone', m, ctx=ctx)
+            await util.info_message(embed, ctx)
             return
 
         # UTC offset
@@ -61,10 +62,11 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
                 user.change_timezone(timezone)
                 m = f'Your timezone has been set to ``{timezone}``. \n'
-                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
-                return
+                embed = embeds.success_embed('Timezone updated successfully', m, ctx)
+                await util.success_message(embed, ctx)
             else:
-                await ctx.send(embed=embeds.error_embed(f'``{timezone}`` is not a valid utc offset', ctx))
+                embed = embeds.error_embed('Invalid Timezone', f'``{timezone}`` is not a valid utc offset', ctx)
+                await util.error_message(embed, ctx)
                 return
 
         # Absolute time given
@@ -84,7 +86,8 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
                     possible_timezones.append(tz)
 
             if len(possible_timezones) < 1:
-                await ctx.send(embed=embeds.error_embed(f'No timezone where it is currently ``{timezone}`` has been found.', ctx))
+                embed = embeds.error_embed('Invalid Time', f'No timezone where it is currently ``{timezone}`` has been found.', ctx)
+                await util.error_message(embed, ctx)
                 return
 
             # search for gmt offsets
@@ -96,23 +99,28 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             # if no gmt is found, then give the user a list
             # this is mostly for funky timezones like Nepal with a 15 minute offset
             if len(possible_gmt_offsets) < 1:
-                await ctx.send('The following timezones have been found to have this current time: ```{0}``` Please choose one and run the following ``rem tz <timezone>``.'.format('\n'.join(possible_timezones)))
+                m = 'The following timezones have been found to have this current time: ```{0}``` Please choose one and run the following ``rem tz <timezone>``.'.format('\n'.join(possible_timezones))
+                embed = embeds.info_embed('Timezones', m, ctx)
+                await util.info_message(embed, ctx)
                 return
             else:
                 tz = possible_gmt_offsets[0]
                 user.change_timezone(tz)
                 m = 'Your timezone has been set to ``{0}`` '.format(tz)
-                await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
+                embed = embeds.success_embed('Timezone updated successfully', m, ctx)
+                await util.success_message(embed, ctx)
                 return
 
         if timezone in pytz.all_timezones:
             user.change_timezone(timezone)
             m = 'Your timezone has been set to ``{0}`` '.format(timezone)
-            await ctx.send(embed=embeds.success_embed('Timezone updated successfully', m, ctx=ctx))
+            embed = embeds.success_embed('Timezone updated successfully', m, ctx)
+            await util.success_message(embed, ctx)
             return
 
         m = f'''The given argument {timezone} is not valid. Be sure to either pass a time, a valid UTC offset or a valid timezone.'''
-        await ctx.send(embed=embeds.error_embed(m, ctx))
+        embed = embeds.error_embed('Invalid Timezone', m, ctx)
+        await util.error_message(embed, ctx)
         return
 
     @commands.command(description='Allows another user to set timers for you.')
@@ -125,18 +133,21 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
         if sender_db is None or self.bot.get_user(sender_db.id) is None:
             m = f'''Other user not found.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Not Found', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if db.Allow.get(sender_db.id, user_db.id) is not None:
             m = f'''This user is already allowed to set timers for you.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Already Allowed', m, ctx)
+            await util.error_message(embed, ctx)
 
         allow = db.Allow.create(sender_db.id, user_db.id)
         allow.insert()
 
         m = f'''Successfully allowed {sender.mention} to set timers for you.'''
-        await ctx.send(embed=embeds.success_embed('Successfully Allowed', m, ctx=ctx))
+        embed = embeds.success_embed('Successfully Allowed', m, ctx)
+        await util.success_message(embed, ctx)
 
 
     @commands.command(aliases=['unallow'], description='Disallows another user to set timers for you.')
@@ -156,19 +167,21 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
                     m += '\nDisallowed anyway.'
                     allow.delete()
 
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-
+            embed = embeds.error_embed('Not Found', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         allow = db.Allow.get(sender_db.id, user_db.id)
         if allow is None:
             m = f'''This user is already disallowed to set timers for you.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Already Disallowed', m, ctx)
+            await util.error_message(embed, ctx)
 
         allow.delete()
 
         m = f'''Successfully disallowed {sender.mention} to set timers for you.'''
-        await ctx.send(embed=embeds.success_embed('Successfully Disallowed', m, ctx=ctx))
+        embed = embeds.success_embed('Successfully Disallowed', m, ctx)
+        await util.success_message(embed, ctx)
 
     
     @commands.group(aliases=['guild'], description='Allows for managing guild settings by administrators')
@@ -184,7 +197,9 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m += '``extract_mentions`` {0}\n Extract Mentions from the timers triggered inside of the guild and send them seperately so that they ping the members and roles. For role pings (including @everyone and @here) the permissions of the author are checked when the timer is triggered.\n'.format('✅' if guild.extract_mentions else '❌')
             m += '\n'
             m += 'To allow or disallow any of these settings in this guild, an admin can run ``{0} guild <setting> [allow|disallow]``'.format(config['prefix'])
-            await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            
+            embed = embeds.standard_embed(title, m, ctx)
+            await util.info_message(embed, ctx)
 
     @guild_settings.command(aliases=['allow_timers', 'timers'], description='Allows/Disallows Timers to trigger in the guild')
     async def guild_allow_timers(self, ctx, *change):
@@ -199,12 +214,14 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``allow_timers``{0}\n Allow Timers to trigger inside of the guild\n'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_timers [allow|disallow]``'.format(config['prefix'])
-            await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            embed = embeds.standard_embed(title, m, ctx)
+            await util.info_message(embed, ctx)
             return
 
         if not permissions.administrator:
             m = 'Changing Guild Settings can only be done by administrators.'
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            embed = embeds.error_embed('Not Authorized', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if change in ['true', 'allow', 'enable']:
@@ -213,13 +230,15 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             guild.allow_timers = False
         else:
             m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Argument', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         guild.update()
         title = 'Guild successfully updated'
         m = '``allow_timers`` has been set to ``{0}``'.format(guild.allow_timers)
-        await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
+        embed = embeds.success_embed(title, m, ctx)
+        await util.success_message(embed, ctx)
 
 
     @guild_settings.command(aliases=['allow_repeat', 'allow_repeating', 'repeat'], description='Allows/Disallows Repeating Timers to trigger in the guild')
@@ -235,12 +254,14 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``allow_timers``{0}\n Allow Repeating Timers to trigger inside of the guild\n'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_repeat [allow|disallow]``'.format(config['prefix'])
-            await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            embed = embeds.standard_embed(title, m, ctx)
+            await util.info_message(embed, ctx)
             return
 
         if not permissions.administrator:
             m = 'Changing Guild Settings can only be done by administrators.'
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            embed = embeds.error_embed('Not Authorized', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if change in ['true', 'allow', 'enable']:
@@ -249,13 +270,15 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             guild.allow_repeating = False
         else:
             m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Argument', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         guild.update()
         title = 'Guild successfully updated'
         m = '``allow_repeat`` has been set to ``{0}``'.format(guild.allow_repeating)
-        await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
+        embed = embeds.success_embed(title, m, ctx)
+        await util.success_message(embed, ctx)
 
     @guild_settings.command(aliases=['extract_mentions', 'mentions'], description='Allows/Disallows Timers to trigger in the guild')
     async def guild_extract_mentions(self, ctx, *change):
@@ -270,12 +293,14 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``extract_mentions`` {0}\n Extract Mentions from the timers triggered inside of the guild and send them seperately so that they ping the members and roles. For role pings (including @everyone and @here) the permissions of the author are checked when the timer is triggered.'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild extract_mentions [allow|disallow]``'.format(config['prefix'])
-            await ctx.send(embed=embeds.standard_embed(title, m, ctx=ctx))
+            embed = embeds.standard_embed(title, m, ctx)
+            await util.info_message(embed, ctx)
             return
 
         if not permissions.administrator:
             m = 'Changing Guild Settings can only be done by administrators.'
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            embed = embeds.error_embed('Not Authorized', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if change in ['true', 'allow', 'enable']:
@@ -284,13 +309,15 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             guild.extract_mentions = False
         else:
             m = 'Please either use ``allow`` or ``disallow`` to change guild settings.'
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Argument', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         guild.update()
         title = 'Guild successfully updated'
         m = '``extract_mentions`` has been set to ``{0}``'.format(guild.extract_mentions)
-        await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
+        embed = embeds.success_embed(title, m, ctx)
+        await util.success_message(embed, ctx)
 
 
     @guild_settings.command(aliases=['timer_list', 'list'], description='Allows/Disallows Repeating Timers to trigger in the guild')
@@ -354,7 +381,7 @@ Total Timers: {len(visual_timers)}
         embed_list = embeds.list_embed('Timers created by you', m, visual_timers)
 
         for e in embed_list:
-            await ctx.send(embed=e)
+            await util.info_message(e, ctx)
             await asyncio.sleep(3)
 
 
@@ -369,79 +396,21 @@ Total Timers: {len(visual_timers)}
             timestamp_seconds = th.parse_time_string(timestamp, user)
         except Exception as e:
             m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         m = '''This timestamp is in <t:{0}:R>'''.format(int(timestamp_seconds))
 
-        await ctx.send(embed=embeds.standard_embed('Timestamp', m, ctx=ctx))
+        embed = embeds.standard_embed('Timestamp', m, ctx)
+        await util.info_message(embed, ctx)
 
-        
 
     @commands.command(aliases=['me', 'm'], description='Sets a personal timer for the person calling the command')
     @commands.check(checks.create_user)
     async def remind_me(self, ctx, timestamp, *label):
         '''<timestamp> *<message>'''
-        label = ' '.join(label)
-        user = db.User.get(ctx.author.id)
-
-        if len(label) == 0:
-            label = 'Unnamed Timer'
-
-        if len(label) > 1000:
-            m = f'''Timer labels are limited to at maximum 1000 characters.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        split_timestamp = timestamp.split('-')
-        if (len(split_timestamp) == 1):
-            timestamp = split_timestamp[0]
-            repeat_timestamp = 0
-        elif (len(split_timestamp) == 2):
-            timestamp = split_timestamp[0]
-            repeat_timestamp = split_timestamp[1]
-        else:
-            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        try:
-            timestamp_seconds = th.parse_time_string(timestamp, user)
-        except Exception as e:
-            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        if (repeat_timestamp == 0):
-            repeat_timestamp_seconds = 0
-        else:
-            try:
-                repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
-                if (repeat_timestamp_seconds < config['min_repeat']):
-                    m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
-                    await ctx.send(embed=embeds.error_embed(m, ctx))
-                    return
-            except Exception as e:
-                m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
-                await ctx.send(embed=embeds.error_embed(m, ctx))
-                return
-
-        if is_dm(ctx.channel):
-            guild_id = 0
-        else:
-            guild_id = ctx.channel.guild.id
-
-        timer = db.Timer.create_personal_timer(label, time.time(), timestamp_seconds, ctx.author.id, ctx.author.id, guild_id, ctx.channel.id, ctx.message.id, repeat=repeat_timestamp_seconds)
-
-        m = '''[ID: {2}]
-{0}
-
-set for you to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id)
-        if (repeat_timestamp_seconds > 0):
-            m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
-
-        timer.insert()
-        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
+        await self.remind_them(ctx, ctx.author, timestamp, *label)
 
 
     @commands.command(aliases=['them'], description='Sets a personal timer for another user')
@@ -455,13 +424,15 @@ set for you to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
 
         if receiver_db is None or self.bot.get_user(receiver_db.id) is None:
             m = f'''Other user not found.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Not Found', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if db.Allow.get(author_db.id, receiver_db.id) is None and author_db.id != receiver_db.id:
             m = '''You are not allowed to set timers for this user.
 They can allow you to send timers by calling ``{0} allow @you``'''.format(config['prefix'])
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            embed = embeds.error_embed('Not Authorized', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if len(label) == 0:
@@ -469,7 +440,8 @@ They can allow you to send timers by calling ``{0} allow @you``'''.format(config
 
         if len(label) > 1000:
             m = f'''Timer labels are limited to at maximum 1000 characters.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timer Label', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         split_timestamp = timestamp.split('-')
@@ -481,7 +453,8 @@ They can allow you to send timers by calling ``{0} allow @you``'''.format(config
             repeat_timestamp = split_timestamp[1]
         else:
             m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         try:
@@ -496,7 +469,8 @@ They can allow you to send timers by calling ``{0} allow @you``'''.format(config
                 absolute_timestamp = True
         except Exception as e:
             m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if absolute_timestamp and pytz.timezone(author_db.timezone).utcoffset.total_seconds() != pytz.timezone(receiver_db.timezone).utcoffset.total_seconds():
@@ -528,14 +502,16 @@ Write ``1`` to set the timer relative to the receiver's timezone'''
                 repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
                 if (repeat_timestamp_seconds < config['min_repeat']):
                     m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
-                    await ctx.send(embed=embeds.error_embed(m, ctx))
+                    embed = embeds.error_embed('Invalid Repetition Duration', m, ctx)
+                    await util.error_message(embed, ctx)
                     return
             except Exception as e:
                 m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                embed = embeds.error_embed('Invalid Repetition Timestamp', m, ctx)
+                await util.error_message(embed, ctx)
                 return
 
-        if is_dm(ctx.channel):
+        if util.is_dm(ctx.channel):
             guild_id = 0
         else:
             guild_id = ctx.channel.guild.id
@@ -550,7 +526,8 @@ set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
             m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
 
         timer.insert()
-        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
+        embed = embeds.success_embed('Timer Set', m, ctx)
+        await util.success_message(embed, ctx)
 
     @commands.command(aliases=['here'], description='Sets a timer in the current channel')
     @commands.check(checks.is_not_dm)
@@ -558,76 +535,7 @@ set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
     @commands.check(checks.create_guild)
     async def remind_here(self, ctx, timestamp, *label):
         '''<timestamp> *<message>'''
-        label = ' '.join(label)
-        user = db.User.get(ctx.author.id)
-        guild = db.Guild.get(ctx.guild.id)
-
-        permissions = ctx.channel.permissions_for(ctx.author)
-
-        if not guild.allow_timers and not permissions.administrator:
-            m = '''You are not allowed to set timers in this guild.
-Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
-            return
-
-        if len(label) == 0:
-            label = 'Unnamed Timer'
-
-        if len(label) > 1000:
-            m = f'''Timer labels are limited to at maximum 1000 characters.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        split_timestamp = timestamp.split('-')
-        if (len(split_timestamp) == 1):
-            timestamp = split_timestamp[0]
-            repeat_timestamp = 0
-        elif (len(split_timestamp) == 2):
-            timestamp = split_timestamp[0]
-            repeat_timestamp = split_timestamp[1]
-            if not guild.allow_repeating and not permissions.administrator:
-                m = '''You are not allowed to set repeating timers in this guild.
-Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
-                return
-        else:
-            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        try:
-            timestamp_seconds = th.parse_time_string(timestamp, user)
-        except Exception as e:
-            m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
-            return
-
-        if (repeat_timestamp == 0):
-            repeat_timestamp_seconds = 0
-        else:
-            try:
-                repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
-                if (repeat_timestamp_seconds < config['min_repeat']):
-                    m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
-                    await ctx.send(embed=embeds.error_embed(m, ctx))
-                    return
-            except Exception as e:
-                m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
-                await ctx.send(embed=embeds.error_embed(m, ctx))
-                return
-
-        timer = db.Timer.create_guild_timer(label, time.time(), timestamp_seconds, ctx.author.id, ctx.guild.id, ctx.channel.id, ctx.message.id, ctx.guild.id, ctx.channel.id, repeat=repeat_timestamp_seconds)
-
-        m = '''[ID: {2}]
-{0}
-
-set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id)
-        if (repeat_timestamp_seconds > 0):
-            m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
-
-        timer.insert()
-        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
-
+        await self.remind_there(ctx, str(ctx.channel.id), timestamp, *label)
 
     @commands.command(aliases=['there'], description='Sets a timer in the specified channel')
     @commands.check(checks.create_user)
@@ -638,7 +546,7 @@ set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_secon
         
         match = re.search(r'<#([0-9]{15,25})>', receiver_channel)
         receiver_channel_split = receiver_channel.split('/')
-        if not is_dm(ctx.channel) and (match is not None or len(receiver_channel_split) == 1):
+        if not util.is_dm(ctx.channel) and (match is not None or len(receiver_channel_split) == 1):
             await checks.create_guild(ctx)
             guild_db = db.Guild.get(ctx.guild.id)
             if match is not None:
@@ -647,37 +555,50 @@ set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_secon
                 receiver_channel_id = int(receiver_channel_split[0])
             channel = ctx.guild.get_channel(receiver_channel_id)
             if channel is None or not channel.permissions_for(ctx.author).read_messages:
-                m = '''Channel not Found.'''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                m = 'Channel not Found.'
+                embed = embeds.error_embed('Not Found', m, ctx)
+                await util.error_message(embed, ctx)
                 return
             elif not channel.permissions_for(ctx.author).send_messages:
-                m = '''You are not authorized to send messages in this channel.'''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+                m = 'You are not authorized to send messages in this channel.'
+                embed = embeds.error_embed('Not Authorized', m, ctx)
+                await util.error_message(embed, ctx)
                 return
+            elif not channel.permissions_for(ctx.guild.get_member(self.bot.user.id)).send_messages:
+                m = 'This bot is not authorized to send messages in this channel.'
+                embed = embeds.error_embed('Bot Not Authorized', m, ctx)
+                await util.error_message(embed, ctx)
+                return
+
         elif len(receiver_channel_split) == 2:
             guild = self.bot.get_guild(int(receiver_channel_split[0]))
             if guild is None:
                 m = f'Guild not found'
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                embed = embeds.error_embed('Not Found', m, ctx)
+                await util.error_message(embed, ctx)
                 return
             guild_db = db.Guild.get(guild.id)
             member = guild.get_member(ctx.author.id)
             if member is None:
                 m = f'Guild not found'
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                embed = embeds.error_embed('Not Found', m, ctx)
+                await util.error_message(embed, ctx)
                 return
             channel = guild.get_channel(int(receiver_channel_split[1]))
             if channel is None or not channel.permissions_for(ctx.author).read_messages:
-                m = '''Channel not Found.'''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                m = 'Channel not Found.'
+                embed = embeds.error_embed('Not Found', m, ctx)
+                await util.error_message(embed, ctx)
                 return
             elif not channel.permissions_for(ctx.author).send_messages:
-                m = '''You are not authorized to send messages in this channel.'''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+                m = 'You are not authorized to send messages in this channel.'
+                embed = embeds.error_embed('Not Authorized', m, ctx)
+                await util.error_message(embed, ctx)
                 return
         else:
             m = f'Channel ``{receiver_channel}`` not found'
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Not Found', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
 
@@ -686,7 +607,8 @@ set to trigger in this channel in <t:{1}:R>'''.format(label, int(timestamp_secon
         if not guild_db.allow_timers and not permissions.administrator:
             m = '''You are not allowed to set timers in this guild.
 Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+            embed = embeds.error_embed('Not Authorized', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if len(label) == 0:
@@ -694,7 +616,8 @@ Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
 
         if len(label) > 1000:
             m = f'''Timer labels are limited to at maximum 1000 characters.'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timer Label', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         split_timestamp = timestamp.split('-')
@@ -707,18 +630,21 @@ Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
             if not guild_db.allow_repeating and not permissions.administrator:
                 m = '''You are not allowed to set repeating timers in this guild.
 Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
-                await ctx.send(embed=embeds.error_embed(m, ctx, title='Not Authorized'))
+                embed = embeds.error_embed('Not Authorized', m, ctx)
+                await util.error_message(embed, ctx)
                 return
         else:
             m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         try:
             timestamp_seconds = th.parse_time_string(timestamp, user)
         except Exception as e:
             m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         if (repeat_timestamp == 0):
@@ -728,14 +654,16 @@ Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
                 repeat_timestamp_seconds = th.timedelta_string_into_seconds(repeat_timestamp)
                 if (repeat_timestamp_seconds < config['min_repeat']):
                     m = '''The minimum duration of repeating a timer is ``{0}``'''.format(th.timedelta_seconds_to_string(config['min_repeat']))
-                    await ctx.send(embed=embeds.error_embed(m, ctx))
+                    embed = embeds.error_embed('Invalid Repetition Duration', m, ctx)
+                    await util.error_message(embed, ctx)
                     return
             except Exception as e:
-                m = f'''Error ``{e}`` occurred, could not parse repeat timestamp ``{repeat_timestamp}``'''
-                await ctx.send(embed=embeds.error_embed(m, ctx))
+                m = f'''Error ``{e}`` occurred, could not parse timestamp ``{timestamp}``'''
+                embed = embeds.error_embed('Invalid Timestamp', m, ctx)
+                await util.error_message(embed, ctx)
                 return
 
-        if is_dm(ctx.channel):
+        if util.is_dm(ctx.channel):
             guild_id = 0
         else:
             guild_id = ctx.channel.guild.id
@@ -752,7 +680,8 @@ set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
             m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
 
         timer.insert()
-        await ctx.send(embed=embeds.success_embed('Timer Set', m, ctx=ctx))
+        embed = embeds.success_embed('Timer Set', m, ctx)
+        await util.success_message(embed, ctx)
 
     @commands.command(description='Deletes a timer controlled by the user')
     @commands.check(checks.create_user)
@@ -770,13 +699,15 @@ set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
 
         if timer is None:
             m = f'Timer of id ``{id}`` not found'
-            await ctx.send(embed=embeds.error_embed(m, ctx))
+            embed = embeds.error_embed('Not Found', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         timer.delete()
         title = 'Timer Deleted'
         m = f'Timer of id ``{id}`` deleted.'
-        await ctx.send(embed=embeds.success_embed(title, m, ctx=ctx))
+        embed = embeds.success_embed(title, m, ctx)
+        await util.success_message(embed, ctx)
 
 
     @commands.command(aliases=['list'], description='Gives the entire list of reminders for a user.')
@@ -793,7 +724,8 @@ set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
 
         if len(receiver_timers) == 0 and len(author_timers) == 0:
             m = 'There are no timers yet connected to you.'
-            await ctx.send(embed=embeds.error_embed(m, ctx, title='No Timers'))
+            embed = embeds.error_embed('No Timers', m, ctx)
+            await util.error_message(embed, ctx)
             return
 
         embed_list = []
@@ -860,7 +792,7 @@ Total Timers: {len(author_timers)}
             embed_list += embeds.list_embed('Timers created by you', m, visual_timers)
 
         for e in embed_list:
-            await ctx.send(embed=e)
+            await util.info_message(e, ctx)
             await asyncio.sleep(3)
 
     @tasks.loop(seconds=config['interval'])

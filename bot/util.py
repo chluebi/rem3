@@ -1,6 +1,8 @@
 import json
-from lib.common import parse_config
+from lib.common import parse_config, get_message_link
+from bot import embeds
 
+import asyncio
 from nextcord import DMChannel, TextChannel
 
 config = parse_config('discord')
@@ -48,3 +50,44 @@ def get_relative_timestamp(seconds):
 
 def get_absolute_timestamp(seconds):
 	return f'<t:{seconds}:F>'
+
+
+async def success_message(embed, ctx):
+	try:
+		await ctx.message.add_reaction('✅')
+	except Exception as e:
+		pass
+
+	try:
+		message = await ctx.send(embed=embed)
+	except Exception as e:
+		pass
+	else:
+		if not is_dm(ctx.channel):
+			await asyncio.sleep(10)
+			await message.delete()
+
+async def info_message(embed, ctx):
+	try:
+		message = await ctx.send(embed=embed)
+	except Exception as e:
+		await ctx.author.send(embed=embed)
+		await ctx.message.add_reaction('🆗')
+
+async def error_message(embed, ctx, delete=True):
+	try:
+		await ctx.message.add_reaction('❌')
+	except Exception as e:
+		pass
+
+	try:
+		message = await ctx.send(embed=embed)
+	except Exception as e:
+		message_link = get_message_link(ctx.guild.id, ctx.channel.id, ctx.message.id, ctx.author.id)
+		embed.add_field(name='Triggered from different channel', value='Triggered from [this message]({0})'.format(message_link))
+		await ctx.author.send(embed=embed)
+	else:
+		if not is_dm(ctx.channel) and delete:
+			await asyncio.sleep(15)
+			await message.delete()
+

@@ -6,7 +6,7 @@ import nextcord
 
 from lib.common import parse_config
 from bot.commands import TimerManager
-import bot.embeds as embeds
+from bot import util, embeds
 
 config = parse_config('discord')
 
@@ -45,12 +45,14 @@ async def on_command_error(ctx, error):
         await ctx.message.add_reaction('❌')
         return
 
-    m = f'''Internal error:
-```{error}```
+    if (isinstance(error, nextcord.ext.commands.errors.UserNotFound)):
+        await ctx.message.add_reaction('❌')
+        return
+
+    m = f'''```{error}```
 
 Probably contact Lu'''
-    await ctx.message.add_reaction('❌')
-    await ctx.message.channel.send(embed=embeds.error_embed(m, ctx))
+    await util.error_message(embeds.error_embed('Internal Error', m, ctx), ctx, delete=False)
     logging.error(error_message)
 
 

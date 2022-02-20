@@ -12,13 +12,13 @@ def standard_embed(title, description, color=blue, ctx=None):
         embed.set_footer(text=f'Command Invoked by {str(ctx.author)}', icon_url=ctx.author.avatar.url)
     return embed
 
-def success_embed(title, description, ctx=None):
+def success_embed(title, description, ctx):
     return standard_embed(title, description, color=green, ctx=ctx)
 
-def info_embed(description, ctx):
+def info_embed(title, description, ctx):
     return standard_embed('Info', description, color=gray)
 
-def error_embed(description, ctx, title='Error Occurred'):
+def error_embed(title, description, ctx):
     return standard_embed(title, description, color=red)
 
 
