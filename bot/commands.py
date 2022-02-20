@@ -185,6 +185,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
 
     
     @commands.group(aliases=['guild'], description='Allows for managing guild settings by administrators')
+    @commands.check(checks.create_guild)
     async def guild_settings(self, ctx):
         '''<setting> (allow|disallow) or list'''
         if ctx.invoked_subcommand is None:
@@ -198,7 +199,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m += '\n'
             m += 'To allow or disallow any of these settings in this guild, an admin can run ``{0} guild <setting> [allow|disallow]``'.format(config['prefix'])
             
-            embed = embeds.standard_embed(title, m, ctx)
+            embed = embeds.info_embed(title, m, ctx)
             await util.info_message(embed, ctx)
 
     @guild_settings.command(aliases=['allow_timers', 'timers'], description='Allows/Disallows Timers to trigger in the guild')
@@ -214,7 +215,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``allow_timers``{0}\n Allow Timers to trigger inside of the guild\n'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_timers [allow|disallow]``'.format(config['prefix'])
-            embed = embeds.standard_embed(title, m, ctx)
+            embed = embeds.info_embed(title, m, ctx)
             await util.info_message(embed, ctx)
             return
 
@@ -254,7 +255,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``allow_timers``{0}\n Allow Repeating Timers to trigger inside of the guild\n'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild allow_repeat [allow|disallow]``'.format(config['prefix'])
-            embed = embeds.standard_embed(title, m, ctx)
+            embed = embeds.info_embed(title, m, ctx)
             await util.info_message(embed, ctx)
             return
 
@@ -293,7 +294,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
             m = ''
             m += '``extract_mentions`` {0}\n Extract Mentions from the timers triggered inside of the guild and send them seperately so that they ping the members and roles. For role pings (including @everyone and @here) the permissions of the author are checked when the timer is triggered.'.format('✅' if guild.allow_timers else '❌')
             m += '\nTo allow or disallow this setting in this guild, an admin can run ``{0} guild extract_mentions [allow|disallow]``'.format(config['prefix'])
-            embed = embeds.standard_embed(title, m, ctx)
+            embed = embeds.info_embed(title, m, ctx)
             await util.info_message(embed, ctx)
             return
 
@@ -325,7 +326,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         '''[DM only]'''
 
         guild = db.Guild.get(ctx.guild.id)
-        wait_message = await ctx.send(embed=embeds.standard_embed('Loading', 'Collecting all timers for this guild, please stand by', ctx=ctx))
+        wait_message = await ctx.send(embed=embeds.info_embed('Loading', 'Collecting all timers for this guild, please stand by', ctx=ctx))
         
         timers = guild.get_timers()
         channel_permissions = {}
@@ -402,7 +403,7 @@ Total Timers: {len(visual_timers)}
 
         m = '''This timestamp is in <t:{0}:R>'''.format(int(timestamp_seconds))
 
-        embed = embeds.standard_embed('Timestamp', m, ctx)
+        embed = embeds.info_embed('Timestamp', m, ctx)
         await util.info_message(embed, ctx)
 
 
@@ -472,28 +473,6 @@ They can allow you to send timers by calling ``{0} allow @you``'''.format(config
             embed = embeds.error_embed('Invalid Timestamp', m, ctx)
             await util.error_message(embed, ctx)
             return
-
-        if absolute_timestamp and pytz.timezone(author_db.timezone).utcoffset.total_seconds() != pytz.timezone(receiver_db.timezone).utcoffset.total_seconds():
-            def check(message):
-                return message.channel.id == ctx.channel.id and message.author.id == ctx.author.id and message.content in ['0', '1']
-            
-            m = '''You have given an absolute timestamp for a timer for a user with a different timezone than yours, please specify relative to which timezone you want to set this timer:
-Write ``0`` to set the timer relative to your timezone
-Write ``1`` to set the timer relative to the receiver's timezone'''
-            timezone_specification_message = await ctx.send(embed=embeds.standard_embed('Action Required', m))
-            
-            try:
-                reply_message = await self.bot.wait_for('message', timeout=10.0, check=check)
-            except asyncio.TimeoutError:
-                await timezone_specification_message.delete()
-                return
-            else:
-                if reply_message.content == '1':
-                    seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, receiver_db.timezone)
-                    timestamp_seconds = th.localize_seconds(seconds_since_epoch, receiver_db.timezone)
-                else:
-                    seconds_since_epoch = th.timepoint_string_to_seconds(timestamp, author_db.timezone)
-                    timestamp_seconds = th.localize_seconds(seconds_since_epoch, author_db.timezone)
 
         if (repeat_timestamp == 0):
             repeat_timestamp_seconds = 0

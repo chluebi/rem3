@@ -64,8 +64,7 @@ async def success_message(embed, ctx):
 		pass
 	else:
 		if not is_dm(ctx.channel):
-			await asyncio.sleep(10)
-			await message.delete()
+			ctx.bot.loop.create_task(delete_message(message, 10))
 
 async def info_message(embed, ctx):
 	try:
@@ -88,6 +87,9 @@ async def error_message(embed, ctx, delete=True):
 		await ctx.author.send(embed=embed)
 	else:
 		if not is_dm(ctx.channel) and delete:
-			await asyncio.sleep(15)
-			await message.delete()
+			ctx.bot.loop.create_task(delete_message(message, 15))
+			
 
+async def delete_message(message, seconds):
+	await asyncio.sleep(seconds)
+	await message.delete()
