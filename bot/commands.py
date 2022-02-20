@@ -720,10 +720,11 @@ set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
                     text += f'by {other_user} '
                 if timer.author_guild_id != 0:
                     author_guild = self.bot.get_guild(timer.author_guild_id)
-                    if author_guild is not None and author_guild.get_member(ctx.author.id) is not None:
+                    member = author_guild.get_member(ctx.author.id)
+                    if author_guild is not None and member is not None:
                         author_channel = author_guild.get_channel(timer.author_channel_id)
                         if author_channel is not None:
-                            permissions = author_channel.permissions_for(ctx.author)
+                            permissions = author_channel.permissions_for(member)
                             if permissions.read_messages:
                                 message_link = get_message_link(timer.author_guild_id, timer.author_channel_id, timer.author_message_id, timer.author_id)
                                 text += f'in [here]({message_link}) '
