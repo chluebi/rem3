@@ -500,7 +500,7 @@ They can allow you to send timers by calling ``{0} allow @you``'''.format(config
         m = '''[ID: {2}]
 {0}
 
-set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id, receiver.mention)
+Set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id, receiver.mention)
         if (repeat_timestamp_seconds > 0):
             m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
 
@@ -654,7 +654,7 @@ Admins can run ``{} guild`` to configure this. '''.format(config['prefix'])
         m = '''[ID: {2}]
 {0}
 
-set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id, channel_link)
+Set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestamp_seconds), timer.id, channel_link)
         if (repeat_timestamp_seconds > 0):
             m += '\nThe timer will repeat every {0}'.format(th.timedelta_seconds_to_string(repeat_timestamp_seconds))
 
