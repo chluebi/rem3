@@ -3,7 +3,7 @@ from lib.common import parse_config, get_message_link
 from bot import embeds
 
 import asyncio
-from nextcord import DMChannel, TextChannel
+from discord import DMChannel, TextChannel
 
 config = parse_config('discord')
 

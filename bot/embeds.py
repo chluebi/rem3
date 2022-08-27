@@ -1,4 +1,4 @@
-from nextcord import Embed, Color
+from discord import Embed, Color
 
 blue = Color.blue()
 red = Color.red()

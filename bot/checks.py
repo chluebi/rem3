@@ -1,4 +1,4 @@
-import nextcord.ext
+import discord.ext
 
 import lib.database as db
 from lib.common import parse_config

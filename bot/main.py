@@ -1,8 +1,9 @@
 import logging
 import traceback
+import asyncio
 
-from nextcord.ext import commands
-import nextcord
+from discord.ext import commands
+import discord
 
 from lib.common import parse_config
 from bot.commands import TimerManager
@@ -10,8 +11,9 @@ from bot import util, embeds
 
 config = parse_config('discord')
 
-intents = nextcord.Intents.default()
+intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
 bot = commands.Bot(command_prefix='{0} '.format(config['prefix']), intents=intents)
 
@@ -19,6 +21,7 @@ logging.basicConfig(handlers=[logging.FileHandler('bot.log', 'a', encoding='utf-
 
 @bot.event
 async def on_ready():
+    
     print('------------------')
     print(f'bot ready {bot.user.name}')
     print('------------------')
@@ -33,19 +36,19 @@ async def help(ctx):
 async def on_command_error(ctx, error):
     error_message = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
     
-    if (isinstance(error, nextcord.ext.commands.CommandNotFound)):
+    if (isinstance(error, discord.ext.commands.CommandNotFound)):
         await ctx.message.add_reaction('❌')
         return
 
-    if (isinstance(error, nextcord.ext.commands.CheckFailure)):
+    if (isinstance(error, discord.ext.commands.CheckFailure)):
         await ctx.message.add_reaction('❌')
         return
 
-    if (isinstance(error, nextcord.ext.commands.MissingRequiredArgument)):
+    if (isinstance(error, discord.ext.commands.MissingRequiredArgument)):
         await ctx.message.add_reaction('❌')
         return
 
-    if (isinstance(error, nextcord.ext.commands.errors.UserNotFound)):
+    if (isinstance(error, discord.ext.commands.errors.UserNotFound)):
         await ctx.message.add_reaction('❌')
         return
 
@@ -56,5 +59,6 @@ Probably contact Lu'''
     logging.error(error_message)
 
 
-bot.add_cog(TimerManager(bot))
+asyncio.run(bot.add_cog(TimerManager(bot)))
+
 bot.run(config['token'])

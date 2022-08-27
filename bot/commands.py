@@ -1,5 +1,5 @@
 from pydoc import describe
-from nextcord.gateway import DiscordClientWebSocketResponse
+from discord.gateway import DiscordClientWebSocketResponse
 import lib.database as db
 from lib.common import parse_config, get_message_link, get_channel_link
 import lib.time_handle as th
@@ -12,7 +12,7 @@ import asyncio
 import re
 import logging
 import traceback
-from nextcord.ext import commands, tasks
+from discord.ext import commands, tasks
 from math import floor
 
 
@@ -22,6 +22,9 @@ class TimerManager(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self):
         self.trigger_timers.start()
 
     @commands.command(aliases=['timezone', 'tz'], description="Sets the user's timezone")
@@ -777,13 +780,13 @@ Total Timers: {len(author_timers)}
 
     @tasks.loop(seconds=config['interval'])
     async def trigger_timers(self):
-            old_time = time.time()
-            timers = db.Timer.get_all_later_then(old_time + config['interval'])
+        old_time = time.time()
+        timers = db.Timer.get_all_later_then(old_time + config['interval'])
 
-            for timer in timers:
-                delay = timer.triggered_timestamp - time.time()
-                self.bot.loop.create_task(self.trigger_timer(delay, timer))
-                timers.remove(timer)
+        for timer in timers:
+            delay = timer.triggered_timestamp - time.time()
+            self.bot.loop.create_task(self.trigger_timer(delay, timer))
+            timers.remove(timer)
 
     async def trigger_timer(self, delay, timer: db.Timer):
         author = self.bot.get_user(timer.author_id)
