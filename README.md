@@ -1,4 +1,5 @@
 # Rem3
+
 A Discord Bot which allows users to set personal and guild based timers.
 
 # How to Use
