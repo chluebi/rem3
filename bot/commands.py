@@ -844,7 +844,7 @@ This timer should've triggered <t:{int(timer.triggered_timestamp)}:R>. (Error Ma
 
             author = self.bot.get_user(timer.author_id)
             if author is not None:
-                embed.set_footer(text=f'Timer created by {str(author)}', icon_url=author.avatar.url)
+                embed.set_footer(text=f'Timer created by {str(author)}', icon_url=author.display_avatar.url)
 
             mention_strings = []
             if timer.receiver_guild_id != 0:
