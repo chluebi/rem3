@@ -9,7 +9,7 @@ gray = Color.lighter_gray()
 def standard_embed(title, description, color=blue, ctx=None):
     embed = Embed(title=title, description=description, color=color)
     if ctx is not None:
-        embed.set_footer(text=f'Command Invoked by {str(ctx.author)}', icon_url=ctx.author.avatar.url)
+        embed.set_footer(text=f'Command Invoked by {str(ctx.author)}', icon_url=ctx.author.display_avatar.url)
     return embed
 
 def success_embed(title, description, ctx):
@@ -44,7 +44,7 @@ def list_embed(title, description, list, color=blue, ctx=None):
         if ctx is None:
             embed.set_footer(text=f'Page {i}/{len(pages)}')
         else:
-            embed.set_footer(text=f'Page {i}/{len(pages)} Command Invoked by {str(ctx.author)}', icon_url=ctx.author.avatar.url)
+            embed.set_footer(text=f'Page {i}/{len(pages)} Command Invoked by {str(ctx.author)}', icon_url=ctx.author.display_avatar.url)
         for j, field in enumerate(page, 1):
             embed.add_field(name=f'Page {i}: {j}/{len(page)}', value=field)
         embeds.append(embed)
