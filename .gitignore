@@ -1,12 +1,12 @@
 .venv/
-bot/__pycache__/
+.direnv/
+
+**/__pycache__/
 
 configs/database_config.json
 
 configs/discord_config.json
 
 lib/__pycache__/
-
-*.lock
 
 *.log

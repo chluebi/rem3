@@ -1,7 +1,7 @@
 from venv import create
 import psycopg2
 import random
-from lib.common import parse_config
+from src.lib.common import parse_config
 
 # standard database connection used by both services
 def connect():

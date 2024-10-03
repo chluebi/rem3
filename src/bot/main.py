@@ -5,9 +5,9 @@ import asyncio
 from discord.ext import commands
 import discord
 
-from lib.common import parse_config
-from bot.commands import TimerManager
-from bot import util, embeds
+from src.lib.common import parse_config
+from src.bot.commands import TimerManager
+from src.bot import util, embeds
 
 config = parse_config('discord')
 
@@ -17,7 +17,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='{0} '.format(config['prefix']), intents=intents)
 
-logging.basicConfig(handlers=[logging.FileHandler('bot.log', 'a', encoding='utf-8')], format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(handlers=[logging.FileHandler('src.bot.log', 'a', encoding='utf-8')], format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 @bot.event
 async def on_ready():

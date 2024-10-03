@@ -1,6 +1,6 @@
 import json
-from lib.common import parse_config, get_message_link
-from bot import embeds
+from src.libcommon import parse_config, get_message_link
+from src.bot import embeds
 
 import asyncio
 from discord import DMChannel, TextChannel
@@ -64,7 +64,7 @@ async def success_message(embed, ctx):
 		pass
 	else:
 		if not is_dm(ctx.channel):
-			ctx.bot.loop.create_task(delete_message(message, 10))
+			ctx.src.bot.loop.create_task(delete_message(message, 10))
 
 async def info_message(embed, ctx):
 	try:
@@ -87,7 +87,7 @@ async def error_message(embed, ctx, delete=True):
 		await ctx.author.send(embed=embed)
 	else:
 		if not is_dm(ctx.channel) and delete:
-			ctx.bot.loop.create_task(delete_message(message, 15))
+			ctx.src.bot.loop.create_task(delete_message(message, 15))
 			
 
 async def delete_message(message, seconds):

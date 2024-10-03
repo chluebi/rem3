@@ -1,9 +1,9 @@
 from pydoc import describe
 from discord.gateway import DiscordClientWebSocketResponse
-import lib.database as db
-from lib.common import parse_config, get_message_link, get_channel_link
-import lib.time_handle as th
-from bot import embeds, checks, util
+import src.lib.database as db
+from src.lib.common import parse_config, get_message_link, get_channel_link
+import src.lib.time_handle as th
+from src.bot import embeds, checks, util
 
 import time
 import calendar
@@ -134,7 +134,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         user_db = db.User.get(ctx.author.id)
         sender_db = db.User.get(sender.id)
 
-        if sender_db is None or self.bot.get_user(sender_db.id) is None:
+        if sender_db is None or self.src.bot.get_user(sender_db.id) is None:
             m = f'''Other user not found.'''
             embed = embeds.error_embed('Not Found', m, ctx)
             await util.error_message(embed, ctx)
@@ -161,7 +161,7 @@ Alternatively you can also type in your UTC offset or if needed your specific ti
         user_db = db.User.get(ctx.author.id)
         sender_db = db.User.get(sender.id)
 
-        if sender_db is None or self.bot.get_user(sender_db.id) is None:
+        if sender_db is None or self.src.bot.get_user(sender_db.id) is None:
             m = f'''Other user not found.'''
             
             if sender_db is not None:
@@ -426,7 +426,7 @@ Total Timers: {len(visual_timers)}
         author_db = db.User.get(ctx.author.id)
         receiver_db = db.User.get(receiver.id)
 
-        if receiver_db is None or self.bot.get_user(receiver_db.id) is None:
+        if receiver_db is None or self.src.bot.get_user(receiver_db.id) is None:
             m = f'''Other user not found.'''
             embed = embeds.error_embed('Not Found', m, ctx)
             await util.error_message(embed, ctx)
@@ -546,14 +546,14 @@ Set for {3} to trigger in <t:{1}:R>'''.format(label, int(timestamp_seconds), tim
                 embed = embeds.error_embed('Not Authorized', m, ctx)
                 await util.error_message(embed, ctx)
                 return
-            elif not channel.permissions_for(ctx.guild.get_member(self.bot.user.id)).send_messages:
+            elif not channel.permissions_for(ctx.guild.get_member(self.src.bot.user.id)).send_messages:
                 m = 'This bot is not authorized to send messages in this channel.'
                 embed = embeds.error_embed('Bot Not Authorized', m, ctx)
                 await util.error_message(embed, ctx)
                 return
 
         elif len(receiver_channel_split) == 2:
-            guild = self.bot.get_guild(int(receiver_channel_split[0]))
+            guild = self.src.bot.get_guild(int(receiver_channel_split[0]))
             if guild is None:
                 m = f'Guild not found'
                 embed = embeds.error_embed('Not Found', m, ctx)
@@ -717,12 +717,12 @@ Set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
             for timer in receiver_timers:
                 text = f'[ID: {timer.id}] created '
                 if timer.author_id != timer.receiver_id:
-                    other_user = self.bot.get_user(timer.author_id)
+                    other_user = self.src.bot.get_user(timer.author_id)
                     if other_user is None:
                         other_user = '``User not found``'
                     text += f'by {other_user} '
                 if timer.author_guild_id != 0:
-                    author_guild = self.bot.get_guild(timer.author_guild_id)
+                    author_guild = self.src.bot.get_guild(timer.author_guild_id)
                     member = author_guild.get_member(ctx.author.id)
                     if author_guild is not None and member is not None:
                         author_channel = author_guild.get_channel(timer.author_channel_id)
@@ -755,7 +755,7 @@ Set to trigger in [this channel]({3}) in <t:{1}:R>'''.format(label, int(timestam
                 text += f'in [here]({message_link}) '
 
                 if timer.receiver_guild_id == 0:
-                    other_user = self.bot.get_user(timer.receiver_id)
+                    other_user = self.src.bot.get_user(timer.receiver_id)
                     if other_user is None:
                         other_user = '``User not found``'
                     text += f'for {other_user} '
@@ -785,11 +785,11 @@ Total Timers: {len(author_timers)}
 
         for timer in timers:
             delay = timer.triggered_timestamp - time.time()
-            self.bot.loop.create_task(self.trigger_timer(delay, timer))
+            self.src.bot.loop.create_task(self.trigger_timer(delay, timer))
             timers.remove(timer)
 
     async def trigger_timer(self, delay, timer: db.Timer):
-        author = self.bot.get_user(timer.author_id)
+        author = self.src.bot.get_user(timer.author_id)
         try:
             await asyncio.sleep(delay)
 
@@ -802,11 +802,11 @@ Total Timers: {len(author_timers)}
                 return True, id
 
             if timer.receiver_guild_id == 0:
-                receiver = self.bot.get_user(timer.receiver_id)
+                receiver = self.src.bot.get_user(timer.receiver_id)
                 if receiver is None:
                     raise Exception('Receiver not found')
             else:
-                receiver_guild = self.bot.get_guild(timer.receiver_guild_id)
+                receiver_guild = self.src.bot.get_guild(timer.receiver_guild_id)
                 receiver_channel = receiver_guild.get_channel(timer.receiver_channel_id)
                 if receiver_channel is None:
                     raise Exception('Receiving Channel not found')
@@ -842,7 +842,7 @@ This timer should've triggered <t:{int(timer.triggered_timestamp)}:R>. (Error Ma
 
             embed = embeds.standard_embed('⏰ Timer Triggered ⏰', m)
 
-            author = self.bot.get_user(timer.author_id)
+            author = self.src.bot.get_user(timer.author_id)
             if author is not None:
                 embed.set_footer(text=f'Timer created by {str(author)}', icon_url=author.avatar.url)
 

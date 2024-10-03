@@ -1,9 +1,9 @@
 import discord.ext
 
-import lib.database as db
-from lib.common import parse_config
-from bot.util import is_dm as channel_is_dm
-from bot import embeds, util
+import src.libdatabase as db
+from src.libcommon import parse_config
+from src.bot.util import is_dm as channel_is_dm
+from src.bot import embeds, util
 
 config = parse_config('discord')
 

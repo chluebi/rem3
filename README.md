@@ -8,7 +8,7 @@ All info is found nicely formatted on the [the website](https://chluebi.github.i
 # How to Host
 Python requirements are all found in the pipenv file.
 Additionally you will need to use a psycopg2 compatible SQL database. Add the connection details to the config file.
-To connect to the Discord API you will need a Discord Account and a Discord Application with an added Bot. Add the client id and token to the config file.
+To connect to the Discord API you will need a Discord Account and a Discord Application with an added src.bot. Add the client id and token to the config file.
 
 ### Tags
 
