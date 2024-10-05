@@ -17,10 +17,10 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='{0} '.format(os.getenv('PREFIX')), intents=intents)
 
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+if not os.path.exists('botlogs'):
+    os.makedirs('botlogs')
 logging.basicConfig(
-    handlers=[logging.FileHandler('logs/bot.log', 'a', encoding='utf-8')],
+    handlers=[logging.FileHandler('botlogs/bot.log', 'a', encoding='utf-8')],
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
