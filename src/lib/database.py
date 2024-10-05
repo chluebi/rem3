@@ -9,7 +9,8 @@ def connect():
                             port=int(os.getenv('POSTGRES_PORT')),
                             database=os.getenv('POSTGRES_DB'),
                             user=os.getenv('POSTGRES_USER'),
-                            password=os.getenv('POSTGRES_PASSWORD'))
+                            password=os.getenv('POSTGRES_PASSWORD'),
+                            options='-c search_path=public')
     return conn
 
 conn = connect()
