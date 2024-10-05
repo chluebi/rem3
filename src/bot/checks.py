@@ -1,18 +1,16 @@
+import os
 import discord.ext
 
-import src.libdatabase as db
-from src.libcommon import parse_config
+import src.lib.database as db
 from src.bot.util import is_dm as channel_is_dm
 from src.bot import embeds, util
-
-config = parse_config('discord')
 
 async def create_user(ctx):
     user = db.User.get(ctx.author.id)
     if user is None:
         user = db.User(ctx.author.id, 'Etc/GMT0')
         user.insert()
-        m = 'You have just been added to the database of users.\nYour timezone isn\'t set yet. Run ``{} timezone`` to set it.'.format(config['prefix'])
+        m = 'You have just been added to the database of users.\nYour timezone isn\'t set yet. Run ``{} timezone`` to set it.'.format(os.getenv('PREFIX'))
         embed = embeds.success_embed('User created', m, ctx)
         await util.success_message(embed, ctx)
     return True
@@ -24,7 +22,7 @@ async def create_guild(ctx):
     if guild is None:
         guild = db.Guild(ctx.guild.id, False, False, False)
         guild.insert()
-        m = 'This guild has just been added to the database of guilds. By Default most actions including the ability to set timers inside of the guild are turned off. Admins can run ``{} guild`` to configure the settings.'.format(config['prefix'])
+        m = 'This guild has just been added to the database of guilds. By Default most actions including the ability to set timers inside of the guild are turned off. Admins can run ``{} guild`` to configure the settings.'.format(os.getenv('PREFIX'))
         embed = embeds.success_embed('Guild created', m, ctx)
         await util.success_message(embed, ctx)
     return True

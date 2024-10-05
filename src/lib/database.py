@@ -1,16 +1,15 @@
 from venv import create
 import psycopg2
+import os
 import random
-from src.lib.common import parse_config
 
 # standard database connection used by both services
 def connect():
-    config = parse_config('database')
-    conn = psycopg2.connect(host=config['host'],
-                            port=config['port'],
-                            database=config['database'],
-                            user=config['user'],
-                            password=config['password'] if 'password' in config else None)
+    conn = psycopg2.connect(host=os.getenv('POSTGRES_HOST'),
+                            port=int(os.getenv('POSTGRES_PORT')),
+                            database=os.getenv('POSTGRES_DB'),
+                            user=os.getenv('POSTGRES_USER'),
+                            password=os.getenv('POSTGRES_PASSWORD'))
     return conn
 
 conn = connect()
@@ -487,3 +486,9 @@ class Timer:
         cur.execute(command, (self.id,))
         cur.close()
     
+
+for cl in [User, Timer, Allow, Guild]:
+    try:
+        cl.create_table()
+    except:
+        conn.rollback()

@@ -1,9 +1,5 @@
 import json
 
-def parse_config(name):
-	with open(f'configs/{name}_config.json', 'r+') as f:
-		data = json.load(f)
-	return data
 
 
 def get_message_link(guild_id, channel_id, message_id, receiver_id):

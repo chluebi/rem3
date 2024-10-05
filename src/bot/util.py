@@ -1,15 +1,14 @@
 import json
-from src.libcommon import parse_config, get_message_link
+import os
+from src.lib.common import get_message_link
 from src.bot import embeds
 
 import asyncio
 from discord import DMChannel, TextChannel
 
-config = parse_config('discord')
-
 def parse_message(content):
-	l = len(config['prefix'])
-	if content[:l] != config['prefix']:
+	l = len(os.getenv('PREFIX'))
+	if content[:l] != os.getenv('PREFIX'):
 		return None
 
 	content = content[l:]

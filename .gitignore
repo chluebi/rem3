@@ -10,3 +10,5 @@ configs/discord_config.json
 lib/__pycache__/
 
 *.log
+.testenv
+.env

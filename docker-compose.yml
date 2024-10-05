@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - dbnetwork
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  bot:
+    image: rem:latest
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    networks:
+      - dbnetwork
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      DISCORD_INVITE: ${DISCORD_INVITE}
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      PREFIX: ${PREFIX}
+      TIMEZONE_LIST: ${TIMEZONE_LIST}
+      INTERVAL: ${INTERVAL}
+      MIN_REPEAT: ${MIN_REPEAT}
+    volumes:
+      - ./logs:/botlogs
+    command: python -m src.bot.main
+
+
+networks:
+  dbnetwork:
+    driver: bridge
+
+volumes:
+  postgres_data:
