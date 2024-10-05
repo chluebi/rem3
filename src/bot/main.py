@@ -17,7 +17,10 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='{0} '.format(os.getenv('PREFIX')), intents=intents)
 
-logging.basicConfig(handlers=[logging.FileHandler('bot.log', 'a', encoding='utf-8')], format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    handlers=[logging.FileHandler('logs/bot.log', 'a', encoding='utf-8')],
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 @bot.event
 async def on_ready():
